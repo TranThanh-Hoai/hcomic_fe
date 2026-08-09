@@ -1,0 +1,211 @@
+import React, { useState, useEffect } from 'react';
+import type { ComicResponse, ComicStatus, ComicRequestData } from '../types';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { getImageUrl } from '../services/apiClient';
+
+interface ComicModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: ComicRequestData, coverFile: File | null) => Promise<void>;
+  initialData?: ComicResponse | null;
+}
+
+export const ComicModal: React.FC<ComicModalProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+}) => {
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [status, setStatus] = useState<ComicStatus>('ONGOING');
+  const [description, setDescription] = useState('');
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setAuthor(initialData.author || '');
+      setStatus(initialData.status || 'ONGOING');
+      setDescription(initialData.description || '');
+      setPreviewUrl(initialData.coverImage ? getImageUrl(initialData.coverImage) : null);
+      setCoverFile(null);
+    } else {
+      setTitle('');
+      setAuthor('');
+      setStatus('ONGOING');
+      setDescription('');
+      setPreviewUrl(null);
+      setCoverFile(null);
+    }
+    setErrorMsg('');
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setCoverFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) {
+      setErrorMsg('Vui lòng nhập tên truyện');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setErrorMsg('');
+      await onSubmit({ title, author, status, description }, coverFile);
+      onClose();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Lỗi khi lưu thông tin truyện');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+      <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h2 className="text-lg font-bold text-slate-800">
+            {initialData ? 'Chỉnh Sửa Truyện' : 'Thêm Truyện Mới'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {errorMsg && (
+          <div className="p-3 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Tên truyện <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="VD: One Piece, Solo Leveling..."
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Tác giả
+              </label>
+              <input
+                type="text"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder="Tên tác giả..."
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Trạng thái
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as ComicStatus)}
+                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all"
+              >
+                <option value="ONGOING">Đang tiến hành</option>
+                <option value="COMPLETED">Hoàn thành</option>
+                <option value="PAUSED">Tạm ngưng</option>
+                <option value="CANCELLED">Đã hủy</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Mô tả truyện
+            </label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Giới thiệu vắn tắt nội dung truyện..."
+              className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Ảnh bìa truyện {initialData ? '(Tùy chọn tải ảnh mới)' : '*'}
+            </label>
+
+            <div className="flex gap-4 items-start">
+              {previewUrl ? (
+                <div className="relative w-24 h-32 rounded-xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100">
+                  <img src={previewUrl} alt="Cover preview" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-24 h-32 rounded-xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 bg-slate-50 shrink-0">
+                  <ImageIcon className="w-6 h-6 mb-1" />
+                  <span className="text-[10px]">Chưa chọn ảnh</span>
+                </div>
+              )}
+
+              <div className="flex-1 space-y-2">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition-colors border border-indigo-200/60">
+                  <Upload className="w-4 h-4" />
+                  <span>Chọn Tệp Ảnh Bìa</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                <p className="text-[11px] text-slate-400 leading-tight">
+                  Hỗ trợ định dạng: JPG, PNG, WEBP, GIF. Hệ thống sẽ tự động tối ưu hóa sang WebP.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            >
+              Hủy Bỏ
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-sm shadow-indigo-200 transition-all"
+            >
+              {isSubmitting ? 'Đang lưu...' : initialData ? 'Cập Nhật Truyện' : 'Tạo Truyện Mới'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
