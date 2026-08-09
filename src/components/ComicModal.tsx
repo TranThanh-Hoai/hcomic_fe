@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { ComicResponse, ComicStatus, ComicRequestData } from '../types';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Loader2, CheckCircle2 } from 'lucide-react';
 import { getImageUrl } from '../services/apiClient';
+import { compressImage, formatFileSize } from '../utils/imageCompressor';
 
 interface ComicModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ export const ComicModal: React.FC<ComicModalProps> = ({
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [fileStats, setFileStats] = useState<{ origSize: string; compSize: string } | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -33,6 +36,7 @@ export const ComicModal: React.FC<ComicModalProps> = ({
       setDescription(initialData.description || '');
       setPreviewUrl(initialData.coverImage ? getImageUrl(initialData.coverImage) : null);
       setCoverFile(null);
+      setFileStats(null);
     } else {
       setTitle('');
       setAuthor('');
@@ -40,17 +44,39 @@ export const ComicModal: React.FC<ComicModalProps> = ({
       setDescription('');
       setPreviewUrl(null);
       setCoverFile(null);
+      setFileStats(null);
     }
     setErrorMsg('');
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setCoverFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const originalFile = e.target.files[0];
+      try {
+        setIsCompressing(true);
+        setErrorMsg('');
+        // Tự động resize (max 1200x1600) & nén quality 80% sang WebP ngay trên trình duyệt người dùng
+        const compressed = await compressImage(originalFile, {
+          maxWidth: 1200,
+          maxHeight: 1600,
+          quality: 0.8,
+          outputType: 'image/webp',
+        });
+        setCoverFile(compressed);
+        setPreviewUrl(URL.createObjectURL(compressed));
+        setFileStats({
+          origSize: formatFileSize(originalFile.size),
+          compSize: formatFileSize(compressed.size),
+        });
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh:', err);
+        setCoverFile(originalFile);
+        setPreviewUrl(URL.createObjectURL(originalFile));
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -171,18 +197,31 @@ export const ComicModal: React.FC<ComicModalProps> = ({
               )}
 
               <div className="flex-1 space-y-2">
-                <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-xl transition-colors border border-indigo-200/60">
-                  <Upload className="w-4 h-4" />
-                  <span>Chọn Tệp Ảnh Bìa</span>
+                <label className={`cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 ${isCompressing ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'} text-xs font-semibold rounded-xl transition-colors border border-indigo-200/60`}>
+                  {isCompressing ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
+                  ) : (
+                    <Upload className="w-4 h-4" />
+                  )}
+                  <span>{isCompressing ? 'Đang nén ảnh (80%)...' : 'Chọn Tệp Ảnh Bìa'}</span>
                   <input
                     type="file"
                     accept="image/*"
+                    disabled={isCompressing}
                     onChange={handleFileChange}
                     className="hidden"
                   />
                 </label>
+
+                {fileStats && !isCompressing && (
+                  <div className="flex items-center gap-1.5 text-emerald-600 text-[11px] font-medium bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Đã nén (quality 80%): <strong>{fileStats.origSize}</strong> ➔ <strong>{fileStats.compSize}</strong></span>
+                  </div>
+                )}
+
                 <p className="text-[11px] text-slate-400 leading-tight">
-                  Hỗ trợ định dạng: JPG, PNG, WEBP, GIF. Hệ thống sẽ tự động tối ưu hóa sang WebP.
+                  Tự động tối ưu dung lượng & resize trên trình duyệt (giúp không tốn CPU/RAM server).
                 </p>
               </div>
             </div>

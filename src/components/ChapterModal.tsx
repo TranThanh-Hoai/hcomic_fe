@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { ChapterResponse, ChapterRequestData } from '../types';
-import { X, Upload, FileText, Trash2 } from 'lucide-react';
+import { X, Upload, FileText, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
+import { compressMultipleImages, formatFileSize } from '../utils/imageCompressor';
 
 interface ChapterModalProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressProgress, setCompressProgress] = useState({ current: 0, total: 0 });
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -38,10 +41,27 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const selected = Array.from(e.target.files);
-      setImageFiles((prev) => [...prev, ...selected]);
+      try {
+        setIsCompressing(true);
+        setErrorMsg('');
+        setCompressProgress({ current: 0, total: selected.length });
+        
+        // Tự động resize (max 1920x2560) & nén quality 80% sang WebP ngay trên trình duyệt người dùng
+        const compressedList = await compressMultipleImages(
+          selected,
+          { maxWidth: 1920, maxHeight: 2560, quality: 0.8, outputType: 'image/webp' },
+          (current, total) => setCompressProgress({ current, total })
+        );
+        setImageFiles((prev) => [...prev, ...compressedList]);
+      } catch (err) {
+        console.error('Lỗi khi nén ảnh trang:', err);
+        setImageFiles((prev) => [...prev, ...selected]);
+      } finally {
+        setIsCompressing(false);
+      }
     }
   };
 
@@ -135,13 +155,24 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
               Danh sách ảnh trang truyện {initialData ? '(Để trống nếu không thay đổi)' : '*'}
             </label>
 
-            <label className="cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 rounded-2xl transition-colors">
-              <Upload className="w-8 h-8 text-indigo-500 mb-2" />
-              <span className="text-xs font-semibold text-indigo-700">Tải lên các trang ảnh</span>
-              <span className="text-[11px] text-slate-400 mt-1">Chọn một hoặc nhiều tệp ảnh (JPG, PNG, WEBP)</span>
+            <label className={`cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed ${isCompressing ? 'border-indigo-300 bg-indigo-50/80 cursor-wait' : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50'} rounded-2xl transition-colors`}>
+              {isCompressing ? (
+                <>
+                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-2" />
+                  <span className="text-xs font-semibold text-indigo-700">Đang nén ảnh WebP (Quality 80%)...</span>
+                  <span className="text-[11px] text-indigo-500 font-medium mt-1">Đang xử lý {compressProgress.current} / {compressProgress.total} tệp</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-8 h-8 text-indigo-500 mb-2" />
+                  <span className="text-xs font-semibold text-indigo-700">Tải lên các trang ảnh</span>
+                  <span className="text-[11px] text-slate-400 mt-1">Hệ thống sẽ tự động resize & nén sang WebP (Quality 80%) tại trình duyệt</span>
+                </>
+              )}
               <input
                 type="file"
                 multiple
+                disabled={isCompressing}
                 accept="image/*"
                 onChange={handleFilesChange}
                 className="hidden"
@@ -150,7 +181,12 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
 
             {imageFiles.length > 0 && (
               <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1">
-                <p className="text-xs font-semibold text-slate-600">Đã chọn ({imageFiles.length} trang):</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-600">Đã nén ({imageFiles.length} trang):</p>
+                  <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Tổng dung lượng: {formatFileSize(imageFiles.reduce((acc, f) => acc + f.size, 0))}
+                  </span>
+                </div>
                 {imageFiles.map((file, idx) => (
                   <div
                     key={idx}
@@ -159,13 +195,16 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                     <span className="truncate max-w-[280px] font-medium text-slate-700 flex items-center gap-1.5">
                       <FileText className="w-3.5 h-3.5 text-indigo-500" /> Trang {idx + 1}: {file.name}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="text-slate-400 hover:text-rose-600"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] font-semibold text-slate-500">{formatFileSize(file.size)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="text-slate-400 hover:text-rose-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
