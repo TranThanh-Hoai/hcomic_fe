@@ -9,6 +9,7 @@ import { MyComicsPage } from './pages/MyComicsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { LibraryPage } from './pages/LibraryPage';
 
 export const App: React.FC = () => {
   return (
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/library" element={<LibraryPage />} />
               <Route path="/comic/:slug" element={<ComicDetailPage />} />
               <Route path="/read/:comicSlug/:chapterSlug" element={<ChapterReaderPage />} />
               <Route path="/my-comics" element={<MyComicsPage />} />

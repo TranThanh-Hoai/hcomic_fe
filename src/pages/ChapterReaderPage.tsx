@@ -1,26 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import type { ChapterDetailResponse, ChapterResponse, CommentResponse } from '../types';
+import type { ChapterDetailResponse, ChapterResponse, CommentResponse, PageBookmarkResponse } from '../types';
 import { chapterService } from '../services/chapterService';
 import { commentService } from '../services/commentService';
+import { historyService } from '../services/historyService';
+import { bookmarkService } from '../services/bookmarkService';
+import { useAuth } from '../context/AuthContext';
 import { getImageUrl } from '../services/apiClient';
 import { CommentSection } from '../components/CommentSection';
+import { BookmarkDrawer } from '../components/BookmarkDrawer';
 import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  Bookmark,
+  BookmarkCheck,
   List,
+  CheckCircle,
 } from 'lucide-react';
 
 export const ChapterReaderPage: React.FC = () => {
   const { comicSlug, chapterSlug } = useParams<{ comicSlug: string; chapterSlug: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const [chapterDetail, setChapterDetail] = useState<ChapterDetailResponse | null>(null);
   const [allChapters, setAllChapters] = useState<ChapterResponse[]>([]);
   const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [bookmarks, setBookmarks] = useState<PageBookmarkResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
+
+  // Auto-scroll notification toast
+  const [autoScrollToast, setAutoScrollToast] = useState<string | null>(null);
+
+  // Bookmark Drawer state
+  const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState<boolean>(false);
+
+  // Active page & scroll tracking
+  const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (comicSlug && chapterSlug) {
@@ -32,7 +52,7 @@ export const ChapterReaderPage: React.FC = () => {
     try {
       setLoading(true);
       setError('');
-      window.scrollTo(0, 0);
+      setAutoScrollToast(null);
 
       const detail = await chapterService.getChapterDetailBySlug(cSlug, chSlug);
       setChapterDetail(detail);
@@ -44,10 +64,142 @@ export const ChapterReaderPage: React.FC = () => {
       // Load chapter comments
       const commentList = await commentService.getChapterComments(detail.id);
       setComments(commentList);
+
+      // Load Auth related data (Reading progress & Bookmarks)
+      if (isAuthenticated) {
+        // Load bookmarks
+        const bookmarkList = await bookmarkService.getBookmarks({ chapterId: detail.id });
+        setBookmarks(bookmarkList);
+
+        // Fetch user reading history for this comic
+        const history = await historyService.getProgressByComicId(detail.comicId);
+
+        // If history matches current chapter, auto scroll to pageNumber
+        if (history && history.chapterId === detail.id && history.pageNumber > 1) {
+          const targetPage = history.pageNumber;
+          setTimeout(() => {
+            scrollToPage(targetPage);
+            setAutoScrollToast(`Tự động cuộn đến Trang ${targetPage} bạn vừa đọc trước đó!`);
+            setTimeout(() => setAutoScrollToast(null), 4000);
+          }, 400);
+        } else {
+          window.scrollTo(0, 0);
+          // Initial save history for page 1
+          debouncedSaveHistory(detail.comicId, detail.id, 1, 0);
+        }
+      } else {
+        window.scrollTo(0, 0);
+      }
     } catch (err: any) {
       setError(err.message || 'Không thể tải thông tin chương');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const scrollToPage = (pageNumber: number) => {
+    const el = imageRefs.current[pageNumber];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const debouncedSaveHistory = useCallback(
+    (comicId: number, chapterId: number, pageNumber: number, percentage: number) => {
+      if (!isAuthenticated) return;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          await historyService.saveOrUpdateProgress({
+            comicId,
+            chapterId,
+            pageNumber,
+            percentage,
+          });
+        } catch (err) {
+          console.error('Failed to update reading history:', err);
+        }
+      }, 1000);
+    },
+    [isAuthenticated]
+  );
+
+  // Track active visible page while scrolling
+  useEffect(() => {
+    if (!chapterDetail || !chapterDetail.images || chapterDetail.images.length === 0) return;
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + window.innerHeight / 3;
+      let activePage = 1;
+
+      const sortedImages = [...chapterDetail.images].sort(
+        (a, b) => (a.pageNumber ?? a.imageOrder ?? 0) - (b.pageNumber ?? b.imageOrder ?? 0)
+      );
+
+      for (let i = 0; i < sortedImages.length; i++) {
+        const pageNum = sortedImages[i].pageNumber ?? sortedImages[i].imageOrder ?? i + 1;
+        const el = imageRefs.current[pageNum];
+        if (el) {
+          const top = el.offsetTop;
+          if (scrollPos >= top) {
+            activePage = pageNum;
+          }
+        }
+      }
+
+      const totalPages = sortedImages.length;
+      const pct = Math.min(100, Math.round((activePage / totalPages) * 100));
+
+      if (activePage !== currentPageNumber) {
+        setCurrentPageNumber(activePage);
+        debouncedSaveHistory(chapterDetail.comicId, chapterDetail.id, activePage, pct);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, [chapterDetail, currentPageNumber, debouncedSaveHistory]);
+
+  const handleToggleBookmark = async (pageNumber: number) => {
+    if (!isAuthenticated) {
+      alert('Vui lòng đăng nhập để lưu đánh dấu trang!');
+      return;
+    }
+    if (!chapterDetail) return;
+
+    const existing = bookmarks.find((bm) => bm.pageNumber === pageNumber);
+    if (existing) {
+      try {
+        await bookmarkService.deleteBookmark(existing.id);
+        setBookmarks((prev) => prev.filter((bm) => bm.id !== existing.id));
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi xóa bookmark');
+      }
+    } else {
+      try {
+        const created = await bookmarkService.createOrUpdateBookmark({
+          comicId: chapterDetail.comicId,
+          chapterId: chapterDetail.id,
+          pageNumber,
+        });
+        setBookmarks((prev) => [...prev, created]);
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi tạo bookmark');
+      }
+    }
+  };
+
+  const handleDeleteBookmark = async (bookmarkId: number) => {
+    try {
+      await bookmarkService.deleteBookmark(bookmarkId);
+      setBookmarks((prev) => prev.filter((bm) => bm.id !== bookmarkId));
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi xóa bookmark');
     }
   };
 
@@ -98,20 +250,43 @@ export const ChapterReaderPage: React.FC = () => {
   }
 
   return (
-    <div className="py-6 max-w-4xl mx-auto space-y-6 animate-fade-in">
+    <div className="py-6 max-w-4xl mx-auto space-y-6 animate-fade-in relative">
       
+      {/* Toast notification when auto-scrolling to last read page */}
+      {autoScrollToast && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-indigo-900/90 text-white px-5 py-2.5 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center gap-2 animate-bounce border border-indigo-500/30">
+          <CheckCircle className="w-4 h-4 text-emerald-400" />
+          <span>{autoScrollToast}</span>
+        </div>
+      )}
+
       {/* Sticky Reader Header Bar */}
-      <div className="sticky top-20 z-30 glass-panel rounded-2xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 border border-slate-200/90">
+      <div className="sticky top-20 z-30 glass-panel rounded-2xl p-3 shadow-md flex flex-wrap items-center justify-between gap-3 border border-slate-200/90">
         <Link
           to={`/comic/${chapterDetail.comicSlug || comicSlug}`}
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="truncate max-w-[150px] sm:max-w-xs">{chapterDetail.comicTitle || 'Trang Truyện'}</span>
+          <span className="truncate max-w-[130px] sm:max-w-xs">{chapterDetail.comicTitle || 'Trang Truyện'}</span>
         </Link>
 
-        {/* Chapter Switcher & Prev/Next Controls */}
+        {/* Chapter Switcher, Bookmark drawer button & Prev/Next Controls */}
         <div className="flex items-center gap-2">
+          {/* Bookmark list button */}
+          <button
+            onClick={() => setIsBookmarkDrawerOpen(true)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors"
+            title="Danh sách trang đánh dấu"
+          >
+            <Bookmark className="w-3.5 h-3.5 fill-indigo-200" />
+            <span className="hidden sm:inline">Bookmarks</span>
+            {bookmarks.length > 0 && (
+              <span className="ml-0.5 bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold">
+                {bookmarks.length}
+              </span>
+            )}
+          </button>
+
           {chapterDetail.prevChapterSlug ? (
             <button
               onClick={() => handleSelectChapter(chapterDetail.prevChapterSlug!)}
@@ -165,7 +340,7 @@ export const ChapterReaderPage: React.FC = () => {
       </div>
 
       {/* Webtoon Vertical Strip Viewer */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow p-2 sm:p-4 space-y-1 min-h-[400px]">
+      <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow p-2 sm:p-4 space-y-3 min-h-[400px]">
         {chapterDetail.images && chapterDetail.images.length > 0 ? (
           [...chapterDetail.images]
             .sort((a, b) => (a.pageNumber ?? a.imageOrder ?? 0) - (b.pageNumber ?? b.imageOrder ?? 0))
@@ -173,14 +348,47 @@ export const ChapterReaderPage: React.FC = () => {
               const imagePath = img.imageUrl || img.imagePath;
               const pageNum = img.pageNumber ?? img.imageOrder ?? idx + 1;
               const srcUrl = getImageUrl(imagePath);
+              const isBookmarked = bookmarks.some((bm) => bm.pageNumber === pageNum);
 
               return (
-                <div key={img.id || idx} className="relative overflow-hidden bg-slate-50">
+                <div
+                  key={img.id || idx}
+                  ref={(el) => {
+                    imageRefs.current[pageNum] = el;
+                  }}
+                  className="relative overflow-hidden bg-slate-50 rounded-2xl group border border-slate-100"
+                >
+                  {/* Overlay Bookmark Action Button */}
+                  <div className="absolute top-3 right-3 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleToggleBookmark(pageNum)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all ${
+                        isBookmarked
+                          ? 'bg-rose-600 text-white hover:bg-rose-700'
+                          : 'bg-slate-900/70 text-white backdrop-blur-md hover:bg-indigo-600'
+                      }`}
+                      title={isBookmarked ? 'Bỏ đánh dấu trang này' : 'Đánh dấu trang này'}
+                    >
+                      {isBookmarked ? (
+                        <>
+                          <BookmarkCheck className="w-4 h-4 fill-white" />
+                          <span>Đã Đánh Dấu (Trang {pageNum})</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-4 h-4" />
+                          <span>Bookmark Trang {pageNum}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Page Image */}
                   {srcUrl ? (
                     <img
                       src={srcUrl}
                       alt={`Trang ${pageNum}`}
-                      className="w-full h-auto block mx-auto select-none"
+                      className="w-full h-auto block mx-auto select-none rounded-xl"
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -189,10 +397,15 @@ export const ChapterReaderPage: React.FC = () => {
                       }}
                     />
                   ) : (
-                    <div className="p-4 text-center text-slate-400 text-xs">
+                    <div className="p-8 text-center text-slate-400 text-xs">
                       [Không tìm thấy ảnh trang {pageNum}]
                     </div>
                   )}
+
+                  {/* Bottom Page Indicator Label */}
+                  <div className="py-1 text-center bg-slate-100 text-[10px] text-slate-400 font-semibold">
+                    — Trang {pageNum} / {chapterDetail.images.length} —
+                  </div>
                 </div>
               );
             })
@@ -241,6 +454,16 @@ export const ChapterReaderPage: React.FC = () => {
         onAddComment={handleAddComment}
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}
+      />
+
+      {/* Bookmark Drawer */}
+      <BookmarkDrawer
+        isOpen={isBookmarkDrawerOpen}
+        onClose={() => setIsBookmarkDrawerOpen(false)}
+        bookmarks={bookmarks}
+        onSelectBookmark={scrollToPage}
+        onDeleteBookmark={handleDeleteBookmark}
+        currentChapterNumber={chapterDetail.chapterNumber}
       />
 
     </div>
