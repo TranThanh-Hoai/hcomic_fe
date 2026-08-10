@@ -10,6 +10,7 @@ import {
   Feather,
   User as UserIcon,
   ChevronDown,
+  Bookmark,
 } from 'lucide-react';
 import { getImageUrl } from '../services/apiClient';
 
@@ -82,13 +83,27 @@ export const Navbar: React.FC = () => {
 
           {/* Actions & User Menu */}
           <div className="flex items-center gap-3">
+            {isAuthenticated && (
+              <Link
+                to="/library"
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                  location.pathname === '/library'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                }`}
+              >
+                <Bookmark className="w-4 h-4" />
+                <span className="hidden sm:inline">Tủ Sách</span>
+              </Link>
+            )}
+
             {isTranslatorOrAdmin && (
               <Link
                 to="/my-comics"
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
                   location.pathname === '/my-comics'
-                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    ? 'bg-teal-600 text-white shadow-sm shadow-teal-200'
+                    : 'bg-teal-50 text-teal-700 hover:bg-teal-100'
                 }`}
               >
                 <PlusCircle className="w-4 h-4" />
@@ -158,6 +173,15 @@ export const Navbar: React.FC = () => {
 
                     {/* Menu Options */}
                     <div className="py-1">
+                      <Link
+                        to="/library"
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-2.5 transition-colors"
+                      >
+                        <Bookmark className="w-4 h-4 text-indigo-500" />
+                        <span>Tủ sách cá nhân</span>
+                      </Link>
+
                       <Link
                         to="/profile"
                         onClick={() => setIsDropdownOpen(false)}

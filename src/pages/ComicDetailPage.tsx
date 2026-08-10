@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import type { ComicResponse, ChapterResponse, CommentResponse, ComicRequestData, ChapterRequestData } from '../types';
+import type { ComicResponse, ChapterResponse, CommentResponse, ComicRequestData, ChapterRequestData, ReadingHistoryResponse } from '../types';
 import { comicService } from '../services/comicService';
 import { chapterService } from '../services/chapterService';
 import { commentService } from '../services/commentService';
 import { rateService } from '../services/rateService';
 import { likeService } from '../services/likeService';
+import { historyService } from '../services/historyService';
 import { getImageUrl } from '../services/apiClient';
 import { StatusBadge } from '../components/StatusBadge';
 import { RatingStars } from '../components/RatingStars';
 import { CommentSection } from '../components/CommentSection';
 import { ComicModal } from '../components/ComicModal';
 import { ChapterModal } from '../components/ChapterModal';
+import { ShelfSelector } from '../components/ShelfSelector';
 import { useAuth } from '../context/AuthContext';
 import {
   Eye,
@@ -24,6 +26,7 @@ import {
   ArrowUpDown,
   Calendar,
   Sparkles,
+  PlayCircle,
 } from 'lucide-react';
 
 export const ComicDetailPage: React.FC = () => {
@@ -37,6 +40,7 @@ export const ComicDetailPage: React.FC = () => {
   const [userScore, setUserScore] = useState<number | null>(null);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(0);
+  const [readingProgress, setReadingProgress] = useState<ReadingHistoryResponse | null>(null);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -77,6 +81,9 @@ export const ComicDetailPage: React.FC = () => {
           setIsLiked(likeStatus.liked);
           setLikeCount(likeStatus.likeCount);
         }
+
+        const history = await historyService.getProgressByComicId(comicData.id);
+        setReadingProgress(history);
       }
     } catch (err: any) {
       setError(err.message || 'Không thể tải thông tin truyện');
@@ -305,7 +312,9 @@ export const ComicDetailPage: React.FC = () => {
               </div>
 
               {/* Interactive Actions */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <ShelfSelector comicId={comic.id} />
+
                 <button
                   onClick={handleToggleLike}
                   className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
@@ -318,16 +327,23 @@ export const ComicDetailPage: React.FC = () => {
                   <span>{isLiked ? 'Đã Thích' : 'Yêu Thích'} ({likeCount})</span>
                 </button>
 
-                {firstChapter && (
+                {readingProgress && readingProgress.chapterSlug ? (
+                  <Link
+                    to={`/read/${comic.slug}/${readingProgress.chapterSlug}`}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-200"
+                  >
+                    <PlayCircle className="w-4 h-4" /> Đọc Tiếp (Chương {readingProgress.chapterNumber}{readingProgress.pageNumber ? ` - Trang ${readingProgress.pageNumber}` : ''})
+                  </Link>
+                ) : firstChapter ? (
                   <Link
                     to={`/read/${comic.slug}/${firstChapter.slug}`}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-200"
                   >
                     <BookOpen className="w-4 h-4" /> Đọc Từ Đầu
                   </Link>
-                )}
+                ) : null}
 
-                {latestChapter && latestChapter !== firstChapter && (
+                {latestChapter && latestChapter !== firstChapter && (!readingProgress || readingProgress.chapterSlug !== latestChapter.slug) && (
                   <Link
                     to={`/read/${comic.slug}/${latestChapter.slug}`}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-teal-200"

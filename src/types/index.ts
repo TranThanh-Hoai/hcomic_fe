@@ -116,3 +116,71 @@ export interface ChapterRequestData {
   chapterNumber: number;
   title?: string;
 }
+
+export type ShelfStatus = 'READING' | 'FAVORITE' | 'COMPLETED' | 'READ_LATER';
+
+export interface ReadingHistoryRequest {
+  comicId: number;
+  chapterId: number;
+  pageNumber?: number;
+  percentage?: number;
+}
+
+export interface ReadingHistoryResponse {
+  id: number;
+  comicId: number;
+  comicTitle: string;
+  comicSlug: string;
+  coverImage?: string;
+  chapterId: number;
+  chapterNumber: number;
+  chapterTitle?: string;
+  chapterSlug: string;
+  pageNumber: number;
+  percentage: number;
+  updatedAt: string;
+}
+
+export interface LibraryStatusRequest {
+  comicId: number;
+  status?: ShelfStatus | null;
+}
+
+export interface UserComicLibraryResponse {
+  id: number;
+  comicId: number;
+  comicTitle: string;
+  comicSlug: string;
+  coverImage?: string;
+  author?: string;
+  comicStatus: ComicStatus;
+  status: ShelfStatus;
+  lastReadChapterId?: number;
+  lastReadChapterNumber?: number;
+  lastReadChapterSlug?: string;
+  lastReadPageNumber?: number;
+  lastReadPercentage?: number;
+  updatedAt: string;
+}
+
+export interface PageBookmarkRequest {
+  comicId: number;
+  chapterId: number;
+  pageNumber: number;
+  note?: string;
+}
+
+export interface PageBookmarkResponse {
+  id: number;
+  comicId: number;
+  comicTitle: string;
+  comicSlug: string;
+  chapterId: number;
+  chapterNumber: number;
+  chapterTitle?: string;
+  chapterSlug: string;
+  pageNumber: number;
+  note?: string;
+  createdAt: string;
+}
+
