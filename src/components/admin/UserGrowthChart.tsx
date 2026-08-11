@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserGrowthDataPoint } from '../../types';
+import type { UserGrowthDataPoint } from '../../types';
 
 interface Props {
   data: UserGrowthDataPoint[];

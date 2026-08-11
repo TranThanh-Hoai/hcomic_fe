@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { CreateReportPayload, ReportItem } from '../types';
+import type { CreateReportPayload, ReportItem } from '../types';
 
 export const reportService = {
   createReport: async (payload: CreateReportPayload): Promise<ReportItem> => {

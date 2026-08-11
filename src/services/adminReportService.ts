@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { PageResponse, ReportItem, ReportStatus, ReportType, ResolveReportPayload } from '../types';
+import type { PageResponse, ReportItem, ReportStatus, ReportType, ResolveReportPayload } from '../types';
 
 export const adminReportService = {
   getReports: async (params?: {

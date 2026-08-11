@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AdminUserItem, UserRole } from '../../types';
+import type { AdminUserItem, UserRole } from '../../types';
 
 interface Props {
   user: AdminUserItem | null;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdminOverviewData } from '../../types';
+import type { AdminOverviewData } from '../../types';
 
 interface Props {
   data: AdminOverviewData | null;

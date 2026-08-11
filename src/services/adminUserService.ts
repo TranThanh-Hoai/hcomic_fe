@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
-import { AdminUserItem, BanUserPayload, PageResponse, UpdateRolePayload, UserRole } from '../types';
+import type { AdminUserItem, BanUserPayload, PageResponse, UpdateRolePayload, UserRole } from '../types';
 
 export const adminUserService = {
   getUsers: async (params?: {

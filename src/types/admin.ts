@@ -1,4 +1,4 @@
-import { UserRole } from './index';
+import type { UserRole } from './index';
 
 export type ReportType = 'COMMENT' | 'CHAPTER' | 'COMIC';
 export type ReportStatus = 'PENDING' | 'RESOLVED' | 'DISMISSED';

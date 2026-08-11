@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingComicItem } from '../../types';
+import type { TrendingComicItem } from '../../types';
 import { getImageUrl } from '../../services/apiClient';
 
 interface Props {

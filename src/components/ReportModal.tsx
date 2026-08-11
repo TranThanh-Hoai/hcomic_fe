@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ReportReason, ReportType } from '../types';
+import type { ReportReason, ReportType } from '../types';
 import { reportService } from '../services/reportService';
 
 interface Props {

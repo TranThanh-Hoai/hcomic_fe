@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdminUserItem } from '../../types';
+import type { AdminUserItem } from '../../types';
 
 interface Props {
   users: AdminUserItem[];

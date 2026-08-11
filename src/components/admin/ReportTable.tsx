@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ReportAction, ReportItem } from '../../types';
+import type { ReportAction, ReportItem } from '../../types';
 
 interface Props {
   reports: ReportItem[];
