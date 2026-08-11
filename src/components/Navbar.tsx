@@ -201,6 +201,17 @@ export const Navbar: React.FC = () => {
                           <span>Quản lý đăng truyện</span>
                         </Link>
                       )}
+
+                      {user.role === 'ADMIN' && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="w-full text-left px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-100 flex items-center gap-2.5 transition-colors"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-indigo-600" />
+                          <span>Trang Quản Trị (Admin)</span>
+                        </Link>
+                      )}
                     </div>
 
                     {/* Logout Option */}

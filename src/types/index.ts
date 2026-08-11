@@ -1,12 +1,15 @@
 export type ComicStatus = 'ONGOING' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
 export type UserRole = 'ADMIN' | 'USER' | 'TRANSLATOR';
 
+export * from './admin';
+
 export interface User {
   username: string;
   displayName?: string;
   email?: string;
   avatar?: string;
   role: UserRole;
+  isBanned?: boolean;
 }
 
 export interface AuthResponse {
@@ -19,6 +22,7 @@ export interface AuthResponse {
   avatar?: string;
   role?: UserRole;
   userRole?: UserRole;
+  isBanned?: boolean;
 }
 
 export interface RegisterResponse {

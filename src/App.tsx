@@ -11,6 +11,12 @@ import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LibraryPage } from './pages/LibraryPage';
 
+import { AdminGuard } from './components/AdminGuard';
+import { AdminLayout } from './components/AdminLayout';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminReportsPage } from './pages/AdminReportsPage';
+
 export const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -28,6 +34,16 @@ export const App: React.FC = () => {
               <Route path="/comic/:slug" element={<ComicDetailPage />} />
               <Route path="/read/:comicSlug/:chapterSlug" element={<ChapterReaderPage />} />
               <Route path="/my-comics" element={<MyComicsPage />} />
+
+              {/* Admin Routes */}
+              <Route element={<AdminGuard />}>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboardPage />} />
+                  <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="reports" element={<AdminReportsPage />} />
+                </Route>
+              </Route>
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>
