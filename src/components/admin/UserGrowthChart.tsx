@@ -25,7 +25,6 @@ export const UserGrowthChart: React.FC<Props> = ({ data, loading }) => {
           <div className="h-44 flex items-end gap-1.5 pt-6 pb-2 px-1 border-b border-slate-200 overflow-x-auto">
             {data.map((point) => {
               const heightPercent = Math.max((point.count / maxCount) * 100, 6);
-              const dateLabel = point.date.split('-').slice(1).join('/');
 
               return (
                 <div key={point.date} className="flex-1 min-w-[14px] flex flex-col items-center gap-1 group relative">
