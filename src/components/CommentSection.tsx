@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { CommentResponse } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { MessageSquare, Send, Edit2, Trash2, Check, X, User } from 'lucide-react';
+import { MessageSquare, Send, Edit2, Trash2, Check, X, User, Flag } from 'lucide-react';
+import { ReportModal } from './ReportModal';
 
 interface CommentSectionProps {
   comments: CommentResponse[];
@@ -21,6 +22,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [reportingComment, setReportingComment] = useState<CommentResponse | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +156,16 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                         </button>
                       </div>
                     )}
+
+                    {!isOwner && isAuthenticated && (
+                      <button
+                        onClick={() => setReportingComment(comment)}
+                        className="p-1 text-slate-300 hover:text-amber-500 transition-colors"
+                        title="Báo cáo vi phạm"
+                      >
+                        <Flag className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {isEditing ? (
@@ -190,6 +202,14 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
           })
         )}
       </div>
+
+      <ReportModal
+        isOpen={Boolean(reportingComment)}
+        onClose={() => setReportingComment(null)}
+        reportType="COMMENT"
+        targetId={reportingComment?.id || 0}
+        targetTitle={reportingComment?.content ? `"${reportingComment.content.substring(0, 30)}..."` : undefined}
+      />
     </div>
   );
 };

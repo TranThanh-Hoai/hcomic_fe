@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { ChapterResponse, ChapterRequestData } from '../types';
-import { X, Upload, FileText, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
-import { compressMultipleImages, formatFileSize } from '../utils/imageCompressor';
+import { X, Upload, Loader2, FileArchive } from 'lucide-react';
+import { compressMultipleImages } from '../utils/imageCompressor';
+import { isZipFile, extractImagesFromZip } from '../utils/zipExtractor';
+import { ImageReorderGrid } from './ImageReorderGrid';
 
 interface ChapterModalProps {
   isOpen: boolean;
@@ -22,8 +24,8 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [compressProgress, setCompressProgress] = useState({ current: 0, total: 0 });
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -45,22 +47,44 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
     if (e.target.files && e.target.files.length > 0) {
       const selected = Array.from(e.target.files);
       try {
-        setIsCompressing(true);
+        setIsProcessing(true);
         setErrorMsg('');
-        setCompressProgress({ current: 0, total: selected.length });
-        
-        // Tự động resize (max 1920x2560) & nén quality 80% sang WebP ngay trên trình duyệt người dùng
+
+        let filesToCompress: File[] = [];
+
+        // Check if any selected file is a ZIP archive
+        const zipFile = selected.find(isZipFile);
+        if (zipFile) {
+          setProcessingStatus('Đang đọc và giải nén tệp ZIP...');
+          const extracted = await extractImagesFromZip(zipFile, (current, total) => {
+            setProcessingStatus(`Đang giải nén file ZIP (${current}/${total} trang)...`);
+          });
+
+          if (extracted.length === 0) {
+            throw new Error('Tệp ZIP không chứa hình ảnh hợp lệ (.jpg, .png, .webp)');
+          }
+          filesToCompress = extracted;
+        } else {
+          filesToCompress = selected.filter((f) => f.type.startsWith('image/'));
+        }
+
+        setProcessingStatus(`Đang nén WebP (0/${filesToCompress.length})...`);
         const compressedList = await compressMultipleImages(
-          selected,
+          filesToCompress,
           { maxWidth: 1920, maxHeight: 2560, quality: 0.8, outputType: 'image/webp' },
-          (current, total) => setCompressProgress({ current, total })
+          (current, total) => {
+            setProcessingStatus(`Đang nén WebP (Quality 80%): ${current}/${total} trang...`);
+          }
         );
+
         setImageFiles((prev) => [...prev, ...compressedList]);
-      } catch (err) {
-        console.error('Lỗi khi nén ảnh trang:', err);
-        setImageFiles((prev) => [...prev, ...selected]);
+      } catch (err: any) {
+         console.error('Lỗi khi xử lý file:', err);
+         setErrorMsg(err.message || 'Lỗi khi giải nén hoặc nén ảnh trang');
       } finally {
-        setIsCompressing(false);
+        setIsProcessing(false);
+        setProcessingStatus('');
+        e.target.value = '';
       }
     }
   };
@@ -94,7 +118,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h2 className="text-lg font-bold text-slate-800">
@@ -155,60 +179,43 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
               Danh sách ảnh trang truyện {initialData ? '(Để trống nếu không thay đổi)' : '*'}
             </label>
 
-            <label className={`cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed ${isCompressing ? 'border-indigo-300 bg-indigo-50/80 cursor-wait' : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50'} rounded-2xl transition-colors`}>
-              {isCompressing ? (
+            <label className={`cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed ${isProcessing ? 'border-indigo-300 bg-indigo-50/80 cursor-wait' : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50'} rounded-2xl transition-colors`}>
+              {isProcessing ? (
                 <>
                   <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-2" />
-                  <span className="text-xs font-semibold text-indigo-700">Đang nén ảnh WebP (Quality 80%)...</span>
-                  <span className="text-[11px] text-indigo-500 font-medium mt-1">Đang xử lý {compressProgress.current} / {compressProgress.total} tệp</span>
+                  <span className="text-xs font-semibold text-indigo-700">Đang xử lý tập tin tại trình duyệt...</span>
+                  <span className="text-[11px] text-indigo-500 font-medium mt-1">{processingStatus}</span>
                 </>
               ) : (
                 <>
-                  <Upload className="w-8 h-8 text-indigo-500 mb-2" />
-                  <span className="text-xs font-semibold text-indigo-700">Tải lên các trang ảnh</span>
-                  <span className="text-[11px] text-slate-400 mt-1">Hệ thống sẽ tự động resize & nén sang WebP (Quality 80%) tại trình duyệt</span>
+                  <div className="flex items-center gap-2 mb-2 text-indigo-500">
+                    <Upload className="w-7 h-7" />
+                    <FileArchive className="w-7 h-7" />
+                  </div>
+                  <span className="text-xs font-semibold text-indigo-700">Tải lên các trang ảnh hoặc File nén .ZIP</span>
+                  <span className="text-[11px] text-slate-400 mt-1 text-center">
+                    Hỗ trợ tệp ảnh (.jpg, .png, .webp) hoặc gói .zip chứa toàn bộ chương.<br/>
+                    Tự động giải nén, sắp xếp thứ tự tự nhiên & nén WebP 80%.
+                  </span>
                 </>
               )}
               <input
                 type="file"
                 multiple
-                disabled={isCompressing}
-                accept="image/*"
+                disabled={isProcessing}
+                accept="image/*,.zip,application/zip,application/x-zip-compressed,application/zip-compressed"
                 onChange={handleFilesChange}
                 className="hidden"
               />
             </label>
 
-            {imageFiles.length > 0 && (
-              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pr-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-slate-600">Đã nén ({imageFiles.length} trang):</p>
-                  <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Tổng dung lượng: {formatFileSize(imageFiles.reduce((acc, f) => acc + f.size, 0))}
-                  </span>
-                </div>
-                {imageFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center justify-between p-2 text-xs bg-slate-50 rounded-lg border border-slate-200"
-                  >
-                    <span className="truncate max-w-[280px] font-medium text-slate-700 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-indigo-500" /> Trang {idx + 1}: {file.name}
-                    </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[11px] font-semibold text-slate-500">{formatFileSize(file.size)}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(idx)}
-                        className="text-slate-400 hover:text-rose-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Drag & Drop Interactive Grid */}
+            <ImageReorderGrid
+              files={imageFiles}
+              onReorder={setImageFiles}
+              onRemove={removeFile}
+              onClearAll={() => setImageFiles([])}
+            />
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -221,7 +228,7 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isProcessing}
               className="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-sm shadow-indigo-200 transition-all"
             >
               {isSubmitting ? 'Đang lưu...' : initialData ? 'Cập Nhật Chương' : 'Tạo Chương Mới'}
@@ -232,3 +239,4 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
     </div>
   );
 };
+
