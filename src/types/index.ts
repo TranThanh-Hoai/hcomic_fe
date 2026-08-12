@@ -1,6 +1,14 @@
 export type ComicStatus = 'ONGOING' | 'COMPLETED' | 'PAUSED' | 'CANCELLED';
 export type UserRole = 'ADMIN' | 'USER' | 'TRANSLATOR';
 
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
 export * from './admin';
 
 export interface User {

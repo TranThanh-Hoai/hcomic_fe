@@ -27,6 +27,10 @@ export const ChapterReaderPage: React.FC = () => {
   const [chapterDetail, setChapterDetail] = useState<ChapterDetailResponse | null>(null);
   const [allChapters, setAllChapters] = useState<ChapterResponse[]>([]);
   const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [commentPage, setCommentPage] = useState<number>(0);
+  const [hasMoreComments, setHasMoreComments] = useState<boolean>(false);
+  const [totalComments, setTotalComments] = useState<number>(0);
+  const [loadingMoreComments, setLoadingMoreComments] = useState<boolean>(false);
   const [bookmarks, setBookmarks] = useState<PageBookmarkResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -61,9 +65,12 @@ export const ChapterReaderPage: React.FC = () => {
       const chaptersList = await chapterService.getChaptersByComicSlug(cSlug, 'asc');
       setAllChapters(chaptersList);
 
-      // Load chapter comments
-      const commentList = await commentService.getChapterComments(detail.id);
-      setComments(commentList);
+      // Load chapter comments (Page 0)
+      const commentPageRes = await commentService.getChapterComments(detail.id, 0, 10);
+      setComments(commentPageRes.content || []);
+      setCommentPage(commentPageRes.page || 0);
+      setTotalComments(commentPageRes.totalElements || 0);
+      setHasMoreComments((commentPageRes.page + 1) < commentPageRes.totalPages);
 
       // Load Auth related data (Reading progress & Bookmarks)
       if (isAuthenticated) {
@@ -209,10 +216,27 @@ export const ChapterReaderPage: React.FC = () => {
     }
   };
 
+  const handleLoadMoreComments = async () => {
+    if (!chapterDetail || loadingMoreComments) return;
+    try {
+      setLoadingMoreComments(true);
+      const nextPage = commentPage + 1;
+      const res = await commentService.getChapterComments(chapterDetail.id, nextPage, 10);
+      setComments((prev) => [...prev, ...(res.content || [])]);
+      setCommentPage(res.page);
+      setHasMoreComments((res.page + 1) < res.totalPages);
+    } catch (err) {
+      console.error('Failed to load more comments:', err);
+    } finally {
+      setLoadingMoreComments(false);
+    }
+  };
+
   const handleAddComment = async (content: string) => {
     if (!chapterDetail) return;
     const created = await commentService.createChapterComment(chapterDetail.id, content);
     setComments((prev) => [created, ...prev]);
+    setTotalComments((prev) => prev + 1);
   };
 
   const handleUpdateComment = async (commentId: number, content: string) => {
@@ -223,6 +247,7 @@ export const ChapterReaderPage: React.FC = () => {
   const handleDeleteComment = async (commentId: number) => {
     await commentService.deleteComment(commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setTotalComments((prev) => Math.max(0, prev - 1));
   };
 
   if (loading) {
@@ -451,6 +476,10 @@ export const ChapterReaderPage: React.FC = () => {
       {/* Chapter Comments Section */}
       <CommentSection
         comments={comments}
+        totalComments={totalComments}
+        hasMore={hasMoreComments}
+        onLoadMore={handleLoadMoreComments}
+        loadingMore={loadingMoreComments}
         onAddComment={handleAddComment}
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}

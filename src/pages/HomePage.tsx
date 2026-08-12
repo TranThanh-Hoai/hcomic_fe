@@ -3,11 +3,16 @@ import { useSearchParams, Link } from 'react-router-dom';
 import type { ComicResponse } from '../types';
 import { comicService } from '../services/comicService';
 import { ComicCard } from '../components/ComicCard';
+import { Pagination } from '../components/Pagination';
 import { Filter, Sparkles, PlusCircle, Flame, Star, Clock, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const HomePage: React.FC = () => {
   const [comics, setComics] = useState<ComicResponse[]>([]);
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(20);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,19 +23,28 @@ export const HomePage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'newest' | 'views' | 'rating'>('newest');
 
   useEffect(() => {
-    fetchComics();
-  }, []);
+    fetchComics(page);
+  }, [page]);
 
-  const fetchComics = async () => {
+  const fetchComics = async (pageNumber: number) => {
     try {
       setLoading(true);
-      const data = await comicService.getAllComics();
-      setComics(data);
+      setError('');
+      const data = await comicService.getAllComics(pageNumber, pageSize);
+      setComics(data.content || []);
+      setPage(data.page || 0);
+      setTotalPages(data.totalPages || 1);
+      setTotalElements(data.totalElements || 0);
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách truyện');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
   const filteredComics = comics.filter((comic) => {
@@ -181,10 +195,21 @@ export const HomePage: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {filteredComics.map((comic) => (
-            <ComicCard key={comic.id} comic={comic} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+            {filteredComics.map((comic) => (
+              <ComicCard key={comic.id} comic={comic} />
+            ))}
+          </div>
+
+          {/* Pagination Component */}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
         </div>
       )}
 

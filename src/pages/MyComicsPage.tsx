@@ -5,6 +5,7 @@ import { comicService } from '../services/comicService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { ComicModal } from '../components/ComicModal';
+import { Pagination } from '../components/Pagination';
 import { getImageUrl } from '../services/apiClient';
 import { PlusCircle, Edit, Trash2, BookOpen, Eye, Heart, ShieldAlert } from 'lucide-react';
 
@@ -12,6 +13,10 @@ export const MyComicsPage: React.FC = () => {
   const { user, isAuthenticated, hasRole } = useAuth();
 
   const [comics, setComics] = useState<ComicResponse[]>([]);
+  const [page, setPage] = useState<number>(0);
+  const [pageSize] = useState<number>(20);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalElements, setTotalElements] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
@@ -23,20 +28,27 @@ export const MyComicsPage: React.FC = () => {
     if (!isAuthenticated || !hasRole(['TRANSLATOR', 'ADMIN'])) {
       return;
     }
-    fetchMyComics();
-  }, [isAuthenticated]);
+    fetchMyComics(page);
+  }, [isAuthenticated, page]);
 
-  const fetchMyComics = async () => {
+  const fetchMyComics = async (pageNumber: number) => {
     try {
       setLoading(true);
       setError('');
-      const data = await comicService.getMyComics();
-      setComics(data);
+      const data = await comicService.getMyComics(pageNumber, pageSize);
+      setComics(data.content || []);
+      setPage(data.page || 0);
+      setTotalPages(data.totalPages || 1);
+      setTotalElements(data.totalElements || 0);
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách truyện của bạn');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
   const handleOpenAddModal = () => {
@@ -56,6 +68,7 @@ export const MyComicsPage: React.FC = () => {
     } else {
       const created = await comicService.createComic(data, coverFile);
       setComics((prev) => [created, ...prev]);
+      setTotalElements((prev) => prev + 1);
     }
   };
 
@@ -64,6 +77,7 @@ export const MyComicsPage: React.FC = () => {
       try {
         await comicService.deleteComic(id);
         setComics((prev) => prev.filter((c) => c.id !== id));
+        setTotalElements((prev) => Math.max(0, prev - 1));
       } catch (err: any) {
         alert(err.message || 'Lỗi khi xóa truyện');
       }
@@ -133,7 +147,7 @@ export const MyComicsPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow overflow-hidden p-4 space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -210,6 +224,15 @@ export const MyComicsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+          />
         </div>
       )}
 
