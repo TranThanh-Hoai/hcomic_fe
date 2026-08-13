@@ -37,6 +37,10 @@ export const ComicDetailPage: React.FC = () => {
   const [comic, setComic] = useState<ComicResponse | null>(null);
   const [chapters, setChapters] = useState<ChapterResponse[]>([]);
   const [comments, setComments] = useState<CommentResponse[]>([]);
+  const [commentPage, setCommentPage] = useState<number>(0);
+  const [hasMoreComments, setHasMoreComments] = useState<boolean>(false);
+  const [totalComments, setTotalComments] = useState<number>(0);
+  const [loadingMoreComments, setLoadingMoreComments] = useState<boolean>(false);
   const [userScore, setUserScore] = useState<number | null>(null);
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [likeCount, setLikeCount] = useState<number>(0);
@@ -67,9 +71,12 @@ export const ComicDetailPage: React.FC = () => {
       const chapterList = await chapterService.getChaptersByComicSlug(comicSlug, sortOrder);
       setChapters(chapterList);
 
-      // Load comments
-      const commentList = await commentService.getComicComments(comicData.id);
-      setComments(commentList);
+      // Load comments (Page 0)
+      const commentPageRes = await commentService.getComicComments(comicData.id, 0, 10);
+      setComments(commentPageRes.content || []);
+      setCommentPage(commentPageRes.page || 0);
+      setTotalComments(commentPageRes.totalElements || 0);
+      setHasMoreComments((commentPageRes.page + 1) < commentPageRes.totalPages);
 
       // Load Auth related stats if logged in
       if (isAuthenticated) {
@@ -179,10 +186,27 @@ export const ComicDetailPage: React.FC = () => {
     }
   };
 
+  const handleLoadMoreComments = async () => {
+    if (!comic || loadingMoreComments) return;
+    try {
+      setLoadingMoreComments(true);
+      const nextPage = commentPage + 1;
+      const res = await commentService.getComicComments(comic.id, nextPage, 10);
+      setComments((prev) => [...prev, ...(res.content || [])]);
+      setCommentPage(res.page);
+      setHasMoreComments((res.page + 1) < res.totalPages);
+    } catch (err) {
+      console.error('Failed to load more comments:', err);
+    } finally {
+      setLoadingMoreComments(false);
+    }
+  };
+
   const handleAddComment = async (content: string) => {
     if (!comic) return;
     const created = await commentService.createComicComment(comic.id, content);
     setComments((prev) => [created, ...prev]);
+    setTotalComments((prev) => prev + 1);
   };
 
   const handleUpdateComment = async (commentId: number, content: string) => {
@@ -193,6 +217,7 @@ export const ComicDetailPage: React.FC = () => {
   const handleDeleteComment = async (commentId: number) => {
     await commentService.deleteComment(commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
+    setTotalComments((prev) => Math.max(0, prev - 1));
   };
 
   if (loading) {
@@ -442,6 +467,10 @@ export const ComicDetailPage: React.FC = () => {
       {/* Comic Comments Section */}
       <CommentSection
         comments={comments}
+        totalComments={totalComments}
+        hasMore={hasMoreComments}
+        onLoadMore={handleLoadMoreComments}
+        loadingMore={loadingMoreComments}
         onAddComment={handleAddComment}
         onUpdateComment={handleUpdateComment}
         onDeleteComment={handleDeleteComment}

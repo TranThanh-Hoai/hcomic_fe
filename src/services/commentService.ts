@@ -1,9 +1,11 @@
 import { apiClient } from './apiClient';
-import type { CommentResponse } from '../types';
+import type { CommentResponse, PageResponse } from '../types';
 
 export const commentService = {
-  getComicComments: async (comicId: number): Promise<CommentResponse[]> => {
-    const response = await apiClient.get<CommentResponse[]>(`/api/comics/${comicId}/comments`);
+  getComicComments: async (comicId: number, page = 0, size = 10): Promise<PageResponse<CommentResponse>> => {
+    const response = await apiClient.get<PageResponse<CommentResponse>>(`/api/comics/${comicId}/comments`, {
+      params: { page, size },
+    });
     return response.data;
   },
 
@@ -12,8 +14,10 @@ export const commentService = {
     return response.data;
   },
 
-  getChapterComments: async (chapterId: number): Promise<CommentResponse[]> => {
-    const response = await apiClient.get<CommentResponse[]>(`/api/chapters/${chapterId}/comments`);
+  getChapterComments: async (chapterId: number, page = 0, size = 10): Promise<PageResponse<CommentResponse>> => {
+    const response = await apiClient.get<PageResponse<CommentResponse>>(`/api/chapters/${chapterId}/comments`, {
+      params: { page, size },
+    });
     return response.data;
   },
 
