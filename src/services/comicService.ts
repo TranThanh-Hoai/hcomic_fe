@@ -1,9 +1,11 @@
 import { apiClient } from './apiClient';
-import type { ComicResponse, ComicRequestData } from '../types';
+import type { ComicResponse, ComicRequestData, PageResponse } from '../types';
 
 export const comicService = {
-  getAllComics: async (): Promise<ComicResponse[]> => {
-    const response = await apiClient.get<ComicResponse[]>('/api/comics');
+  getAllComics: async (page = 0, size = 20): Promise<PageResponse<ComicResponse>> => {
+    const response = await apiClient.get<PageResponse<ComicResponse>>('/api/comics', {
+      params: { page, size },
+    });
     return response.data;
   },
 
@@ -17,13 +19,17 @@ export const comicService = {
     return response.data;
   },
 
-  getMyComics: async (): Promise<ComicResponse[]> => {
-    const response = await apiClient.get<ComicResponse[]>('/api/comics/my-comics');
+  getMyComics: async (page = 0, size = 20): Promise<PageResponse<ComicResponse>> => {
+    const response = await apiClient.get<PageResponse<ComicResponse>>('/api/comics/my-comics', {
+      params: { page, size },
+    });
     return response.data;
   },
 
-  getComicsByUploader: async (uploader: string): Promise<ComicResponse[]> => {
-    const response = await apiClient.get<ComicResponse[]>(`/api/comics/uploader/${uploader}`);
+  getComicsByUploader: async (uploader: string, page = 0, size = 20): Promise<PageResponse<ComicResponse>> => {
+    const response = await apiClient.get<PageResponse<ComicResponse>>(`/api/comics/uploader/${uploader}`, {
+      params: { page, size },
+    });
     return response.data;
   },
 
