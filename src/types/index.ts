@@ -141,6 +141,19 @@ export interface ComicRequestData {
   genreIds?: number[];
 }
 
+export interface ComicFilterParams {
+  query?: string;
+  q?: string;
+  genre?: string;
+  genres?: string[];
+  status?: ComicStatus | 'ALL';
+  uploader?: string;
+  page?: number;
+  size?: number;
+  sortBy?: 'newest' | 'views' | 'rating' | 'title';
+  sortDir?: 'asc' | 'desc';
+}
+
 export interface ChapterRequestData {
   chapterNumber: number;
   title?: string;
