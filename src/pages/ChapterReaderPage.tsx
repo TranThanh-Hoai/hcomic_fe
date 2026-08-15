@@ -276,7 +276,7 @@ export const ChapterReaderPage: React.FC = () => {
 
   return (
     <div className="py-6 max-w-4xl mx-auto space-y-6 animate-fade-in relative">
-      
+
       {/* Toast notification when auto-scrolling to last read page */}
       {autoScrollToast && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-indigo-900/90 text-white px-5 py-2.5 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center gap-2 animate-bounce border border-indigo-500/30">
@@ -387,11 +387,10 @@ export const ChapterReaderPage: React.FC = () => {
                   <div className="absolute top-3 right-3 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleToggleBookmark(pageNum)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all ${
-                        isBookmarked
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all ${isBookmarked
                           ? 'bg-rose-600 text-white hover:bg-rose-700'
                           : 'bg-slate-900/70 text-white backdrop-blur-md hover:bg-indigo-600'
-                      }`}
+                        }`}
                       title={isBookmarked ? 'Bỏ đánh dấu trang này' : 'Đánh dấu trang này'}
                     >
                       {isBookmarked ? (

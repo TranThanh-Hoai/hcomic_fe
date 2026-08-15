@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import type { ComicResponse, ComicStatus, ComicRequestData } from '../types';
-import { X, Upload, Image as ImageIcon, Loader2, CheckCircle2 } from 'lucide-react';
+import type { ComicResponse, ComicStatus, ComicRequestData, GenreResponse } from '../types';
+import { X, Upload, Image as ImageIcon, Loader2, CheckCircle2, Search } from 'lucide-react';
 import { getImageUrl } from '../services/apiClient';
+import { genreService } from '../services/genreService';
 import { compressImage, formatFileSize } from '../utils/imageCompressor';
 
 interface ComicModalProps {
@@ -21,6 +22,9 @@ export const ComicModal: React.FC<ComicModalProps> = ({
   const [author, setAuthor] = useState('');
   const [status, setStatus] = useState<ComicStatus>('ONGOING');
   const [description, setDescription] = useState('');
+  const [selectedGenreIds, setSelectedGenreIds] = useState<number[]>([]);
+  const [availableGenres, setAvailableGenres] = useState<GenreResponse[]>([]);
+  const [genreFilterText, setGenreFilterText] = useState('');
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,11 +33,27 @@ export const ComicModal: React.FC<ComicModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
+    if (isOpen) {
+      loadGenres();
+    }
+  }, [isOpen]);
+
+  const loadGenres = async () => {
+    try {
+      const genres = await genreService.getAllGenres();
+      setAvailableGenres(genres || []);
+    } catch (err) {
+      console.error('Không thể tải danh sách thể loại:', err);
+    }
+  };
+
+  useEffect(() => {
     if (initialData) {
       setTitle(initialData.title || '');
       setAuthor(initialData.author || '');
       setStatus(initialData.status || 'ONGOING');
       setDescription(initialData.description || '');
+      setSelectedGenreIds(initialData.genres?.map((g) => g.id) || []);
       setPreviewUrl(initialData.coverImage ? getImageUrl(initialData.coverImage) : null);
       setCoverFile(null);
       setFileStats(null);
@@ -42,14 +62,22 @@ export const ComicModal: React.FC<ComicModalProps> = ({
       setAuthor('');
       setStatus('ONGOING');
       setDescription('');
+      setSelectedGenreIds([]);
       setPreviewUrl(null);
       setCoverFile(null);
       setFileStats(null);
     }
+    setGenreFilterText('');
     setErrorMsg('');
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleToggleGenre = (id: number) => {
+    setSelectedGenreIds((prev) =>
+      prev.includes(id) ? prev.filter((gid) => gid !== id) : [...prev, id]
+    );
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -90,7 +118,16 @@ export const ComicModal: React.FC<ComicModalProps> = ({
     try {
       setIsSubmitting(true);
       setErrorMsg('');
-      await onSubmit({ title, author, status, description }, coverFile);
+      await onSubmit(
+        {
+          title,
+          author,
+          status,
+          description,
+          genreIds: selectedGenreIds,
+        },
+        coverFile
+      );
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Lỗi khi lưu thông tin truyện');
@@ -98,6 +135,10 @@ export const ComicModal: React.FC<ComicModalProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const filteredAvailableGenres = availableGenres.filter((g) =>
+    g.name.toLowerCase().includes(genreFilterText.toLowerCase())
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
@@ -163,6 +204,53 @@ export const ComicModal: React.FC<ComicModalProps> = ({
                 <option value="PAUSED">Tạm ngưng</option>
                 <option value="CANCELLED">Đã hủy</option>
               </select>
+            </div>
+          </div>
+
+          {/* Genres Multi-select section */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700">
+                Thể loại truyện ({selectedGenreIds.length} đã chọn)
+              </label>
+              {availableGenres.length > 10 && (
+                <div className="relative w-40">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={genreFilterText}
+                    onChange={(e) => setGenreFilterText(e.target.value)}
+                    placeholder="Tìm thể loại..."
+                    className="w-full pl-8 pr-2.5 py-1 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl max-h-40 overflow-y-auto flex flex-wrap gap-1.5 scrollbar-thin">
+              {filteredAvailableGenres.map((g) => {
+                const isChecked = selectedGenreIds.includes(g.id);
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => handleToggleGenre(g.id)}
+                    title={g.description || g.name}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                      isChecked
+                        ? 'bg-indigo-600 text-white font-semibold shadow-xs'
+                        : 'bg-white text-slate-600 border border-slate-200/80 hover:border-indigo-200 hover:text-indigo-600'
+                    }`}
+                  >
+                    {isChecked ? '✓ ' : ''}{g.name}
+                  </button>
+                );
+              })}
+              {filteredAvailableGenres.length === 0 && (
+                <span className="text-xs text-slate-400 italic py-1">
+                  Không tìm thấy thể loại phù hợp.
+                </span>
+              )}
             </div>
           </div>
 

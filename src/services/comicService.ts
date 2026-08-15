@@ -2,9 +2,13 @@ import { apiClient } from './apiClient';
 import type { ComicResponse, ComicRequestData, PageResponse } from '../types';
 
 export const comicService = {
-  getAllComics: async (page = 0, size = 20): Promise<PageResponse<ComicResponse>> => {
+  getAllComics: async (page = 0, size = 20, genre?: string): Promise<PageResponse<ComicResponse>> => {
+    const params: Record<string, any> = { page, size };
+    if (genre && genre !== 'ALL') {
+      params.genre = genre;
+    }
     const response = await apiClient.get<PageResponse<ComicResponse>>('/api/comics', {
-      params: { page, size },
+      params,
     });
     return response.data;
   },
