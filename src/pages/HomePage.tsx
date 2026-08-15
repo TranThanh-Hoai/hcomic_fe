@@ -5,7 +5,7 @@ import { comicService } from '../services/comicService';
 import { genreService } from '../services/genreService';
 import { ComicCard } from '../components/ComicCard';
 import { Pagination } from '../components/Pagination';
-import { Filter, Sparkles, PlusCircle, Flame, Star, Clock, BookOpen, Layers, X } from 'lucide-react';
+import { Filter, Sparkles, PlusCircle, Flame, Star, Clock, BookOpen, Layers, X, Compass } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const HomePage: React.FC = () => {
@@ -20,7 +20,7 @@ export const HomePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { hasRole } = useAuth();
 
-  const searchQuery = searchParams.get('search') || '';
+  const searchQuery = searchParams.get('search') || searchParams.get('q') || '';
   const currentGenreSlug = searchParams.get('genre') || 'ALL';
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'newest' | 'views' | 'rating'>('newest');
@@ -30,8 +30,8 @@ export const HomePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchComics(page, currentGenreSlug);
-  }, [page, currentGenreSlug]);
+    fetchComics(page, currentGenreSlug, searchQuery, statusFilter, sortBy);
+  }, [page, currentGenreSlug, searchQuery, statusFilter, sortBy]);
 
   const fetchGenres = async () => {
     try {
@@ -42,11 +42,24 @@ export const HomePage: React.FC = () => {
     }
   };
 
-  const fetchComics = async (pageNumber: number, genreSlug: string) => {
+  const fetchComics = async (
+    pageNumber: number,
+    genreSlug: string,
+    query: string,
+    status: string,
+    sort: 'newest' | 'views' | 'rating'
+  ) => {
     try {
       setLoading(true);
       setError('');
-      const data = await comicService.getAllComics(pageNumber, pageSize, genreSlug);
+      const data = await comicService.getAllComics({
+        page: pageNumber,
+        size: pageSize,
+        genre: genreSlug !== 'ALL' ? genreSlug : undefined,
+        query: query.trim() || undefined,
+        status: status !== 'ALL' ? (status as any) : undefined,
+        sortBy: sort,
+      });
       setComics(data.content || []);
       setPage(data.page || 0);
       setTotalPages(data.totalPages || 1);
@@ -74,28 +87,17 @@ export const HomePage: React.FC = () => {
     setSearchParams(newParams);
   };
 
+  const handleStatusChange = (status: string) => {
+    setPage(0);
+    setStatusFilter(status);
+  };
+
+  const handleSortChange = (sort: 'newest' | 'views' | 'rating') => {
+    setPage(0);
+    setSortBy(sort);
+  };
+
   const selectedGenreObj = genres.find((g) => g.slug === currentGenreSlug);
-
-  const filteredComics = comics.filter((comic) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      comic.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (comic.author && comic.author.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesStatus =
-      statusFilter === 'ALL' || comic.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  }).sort((a, b) => {
-    if (sortBy === 'views') {
-      return (b.viewCount || 0) - (a.viewCount || 0);
-    }
-    if (sortBy === 'rating') {
-      return (b.rating || 0) - (a.rating || 0);
-    }
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
   const isTranslatorOrAdmin = hasRole(['TRANSLATOR', 'ADMIN']);
 
   return (
@@ -114,16 +116,23 @@ export const HomePage: React.FC = () => {
             Trải nghiệm đọc truyện mượt mà với giao diện dịu mắt, cập nhật chương mới nhanh nhất cùng cộng đồng mê truyện đông đảo.
           </p>
 
-          {isTranslatorOrAdmin && (
-            <div className="pt-2">
+          <div className="pt-2 flex flex-wrap items-center gap-3">
+            <Link
+              to="/search"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-700 hover:bg-slate-50 font-bold text-xs rounded-xl shadow-lg shadow-black/5 transition-all hover:scale-105"
+            >
+              <Compass className="w-4 h-4" /> Khám Phá Thể Loại Nâng Cao
+            </Link>
+
+            {isTranslatorOrAdmin && (
               <Link
                 to="/my-comics"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-700 hover:bg-slate-50 font-bold text-xs rounded-xl shadow-lg shadow-black/5 transition-all hover:scale-105"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-900/60 hover:bg-indigo-900/80 text-white border border-white/20 font-bold text-xs rounded-xl shadow-lg transition-all hover:scale-105"
               >
-                <PlusCircle className="w-4 h-4" /> Đăng Truyện Mới Ngay
+                <PlusCircle className="w-4 h-4" /> Đăng Truyện Mới
               </Link>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Decorative background shapes */}
@@ -207,7 +216,7 @@ export const HomePage: React.FC = () => {
           ].map((item) => (
             <button
               key={item.key}
-              onClick={() => setStatusFilter(item.key)}
+              onClick={() => handleStatusChange(item.key)}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
                 statusFilter === item.key
                   ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
@@ -224,7 +233,7 @@ export const HomePage: React.FC = () => {
           <span className="text-xs font-semibold text-slate-500">Sắp xếp:</span>
           <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/60">
             <button
-              onClick={() => setSortBy('newest')}
+              onClick={() => handleSortChange('newest')}
               className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 sortBy === 'newest' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600'
               }`}
@@ -232,7 +241,7 @@ export const HomePage: React.FC = () => {
               <Clock className="w-3 h-3" /> Mới nhất
             </button>
             <button
-              onClick={() => setSortBy('views')}
+              onClick={() => handleSortChange('views')}
               className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 sortBy === 'views' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600'
               }`}
@@ -240,7 +249,7 @@ export const HomePage: React.FC = () => {
               <Flame className="w-3 h-3" /> Xem nhiều
             </button>
             <button
-              onClick={() => setSortBy('rating')}
+              onClick={() => handleSortChange('rating')}
               className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 sortBy === 'rating' ? 'bg-white text-indigo-600 shadow-sm font-semibold' : 'text-slate-600'
               }`}
@@ -256,7 +265,7 @@ export const HomePage: React.FC = () => {
       {(searchQuery || currentGenreSlug !== 'ALL') && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl">
           <div className="flex items-center gap-2">
-            <span>Đang hiển thị kết quả cho:</span>
+            <span>Đang hiển thị kết quả ({totalElements} truyện):</span>
             {currentGenreSlug !== 'ALL' && selectedGenreObj && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold">
                 Thể loại: {selectedGenreObj.name}
@@ -288,7 +297,7 @@ export const HomePage: React.FC = () => {
         <div className="p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
           {error}
         </div>
-      ) : filteredComics.length === 0 ? (
+      ) : comics.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 soft-shadow space-y-3">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
           <h3 className="text-base font-bold text-slate-700">Không tìm thấy truyện nào</h3>
@@ -299,7 +308,7 @@ export const HomePage: React.FC = () => {
       ) : (
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-            {filteredComics.map((comic) => (
+            {comics.map((comic) => (
               <ComicCard key={comic.id} comic={comic} />
             ))}
           </div>

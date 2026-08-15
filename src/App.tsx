@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
+import { SearchPage } from './pages/SearchPage';
 import { ComicDetailPage } from './pages/ComicDetailPage';
 import { ChapterReaderPage } from './pages/ChapterReaderPage';
 import { MyComicsPage } from './pages/MyComicsPage';
@@ -28,6 +29,7 @@ export const App: React.FC = () => {
           <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12">
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/profile" element={<ProfilePage />} />

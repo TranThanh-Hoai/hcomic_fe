@@ -9,6 +9,7 @@ interface GenreBadgeProps {
   selected?: boolean;
   onClick?: () => void;
   className?: string;
+  targetUrl?: string;
 }
 
 export const GenreBadge: React.FC<GenreBadgeProps> = ({
@@ -18,6 +19,7 @@ export const GenreBadge: React.FC<GenreBadgeProps> = ({
   selected = false,
   onClick,
   className = '',
+  targetUrl,
 }) => {
   const sizeClasses = {
     xs: 'px-2 py-0.5 text-[10px]',
@@ -47,7 +49,7 @@ export const GenreBadge: React.FC<GenreBadgeProps> = ({
   if (clickable) {
     return (
       <Link
-        to={`/?genre=${genre.slug}`}
+        to={targetUrl || `/search?genre=${genre.slug}`}
         className={`${baseClasses} ${stateClasses}`}
         title={genre.description || genre.name}
       >
