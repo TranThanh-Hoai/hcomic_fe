@@ -41,6 +41,21 @@ export interface RegisterResponse {
   role: UserRole;
 }
 
+export interface GenreResponse {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  comicCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GenreRequestData {
+  name: string;
+  description?: string;
+}
+
 export interface ComicResponse {
   id: number;
   title: string;
@@ -53,6 +68,7 @@ export interface ComicResponse {
   likeCount: number;
   rating?: number;
   status: ComicStatus;
+  genres?: GenreResponse[];
   createdAt: string;
   updatedAt: string;
 }
@@ -122,6 +138,7 @@ export interface ComicRequestData {
   description?: string;
   author?: string;
   status?: ComicStatus;
+  genreIds?: number[];
 }
 
 export interface ChapterRequestData {
