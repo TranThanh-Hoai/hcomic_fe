@@ -16,6 +16,7 @@ import { AdminLayout } from './components/AdminLayout';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminReportsPage } from './pages/AdminReportsPage';
+import { AdminGenresPage } from './pages/AdminGenresPage';
 
 export const App: React.FC = () => {
   return (
@@ -40,6 +41,7 @@ export const App: React.FC = () => {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboardPage />} />
                   <Route path="users" element={<AdminUsersPage />} />
+                  <Route path="genres" element={<AdminGenresPage />} />
                   <Route path="reports" element={<AdminReportsPage />} />
                 </Route>
               </Route>

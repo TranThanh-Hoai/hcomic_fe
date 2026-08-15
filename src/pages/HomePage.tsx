@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import type { ComicResponse } from '../types';
+import type { ComicResponse, GenreResponse } from '../types';
 import { comicService } from '../services/comicService';
+import { genreService } from '../services/genreService';
 import { ComicCard } from '../components/ComicCard';
 import { Pagination } from '../components/Pagination';
-import { Filter, Sparkles, PlusCircle, Flame, Star, Clock, BookOpen } from 'lucide-react';
+import { Filter, Sparkles, PlusCircle, Flame, Star, Clock, BookOpen, Layers, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const HomePage: React.FC = () => {
   const [comics, setComics] = useState<ComicResponse[]>([]);
+  const [genres, setGenres] = useState<GenreResponse[]>([]);
   const [page, setPage] = useState<number>(0);
   const [pageSize] = useState<number>(20);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -19,18 +21,32 @@ export const HomePage: React.FC = () => {
   const { hasRole } = useAuth();
 
   const searchQuery = searchParams.get('search') || '';
+  const currentGenreSlug = searchParams.get('genre') || 'ALL';
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'newest' | 'views' | 'rating'>('newest');
 
   useEffect(() => {
-    fetchComics(page);
-  }, [page]);
+    fetchGenres();
+  }, []);
 
-  const fetchComics = async (pageNumber: number) => {
+  useEffect(() => {
+    fetchComics(page, currentGenreSlug);
+  }, [page, currentGenreSlug]);
+
+  const fetchGenres = async () => {
+    try {
+      const data = await genreService.getAllGenres();
+      setGenres(data || []);
+    } catch (err) {
+      console.error('Không thể tải danh sách thể loại:', err);
+    }
+  };
+
+  const fetchComics = async (pageNumber: number, genreSlug: string) => {
     try {
       setLoading(true);
       setError('');
-      const data = await comicService.getAllComics(pageNumber, pageSize);
+      const data = await comicService.getAllComics(pageNumber, pageSize, genreSlug);
       setComics(data.content || []);
       setPage(data.page || 0);
       setTotalPages(data.totalPages || 1);
@@ -46,6 +62,19 @@ export const HomePage: React.FC = () => {
     setPage(newPage);
     window.scrollTo({ top: 300, behavior: 'smooth' });
   };
+
+  const handleSelectGenre = (slug: string) => {
+    setPage(0);
+    const newParams = new URLSearchParams(searchParams);
+    if (slug === 'ALL') {
+      newParams.delete('genre');
+    } else {
+      newParams.set('genre', slug);
+    }
+    setSearchParams(newParams);
+  };
+
+  const selectedGenreObj = genres.find((g) => g.slug === currentGenreSlug);
 
   const filteredComics = comics.filter((comic) => {
     const matchesSearch =
@@ -100,6 +129,67 @@ export const HomePage: React.FC = () => {
         {/* Decorative background shapes */}
         <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
       </div>
+
+      {/* Genre Filter Carousel / Chips */}
+      {genres.length > 0 && (
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 soft-shadow space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+              <Layers className="w-4 h-4 text-indigo-600" />
+              <span>Khám phá theo Thể loại:</span>
+            </div>
+            {currentGenreSlug !== 'ALL' && (
+              <button
+                onClick={() => handleSelectGenre('ALL')}
+                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+              >
+                <X className="w-3 h-3" /> Đặt lại tất cả thể loại
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-0.5 scrollbar-thin">
+            <button
+              onClick={() => handleSelectGenre('ALL')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                currentGenreSlug === 'ALL'
+                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+              }`}
+            >
+              Tất cả
+            </button>
+            {genres.map((genre) => {
+              const isSelected = currentGenreSlug === genre.slug;
+              return (
+                <button
+                  key={genre.id}
+                  onClick={() => handleSelectGenre(genre.slug)}
+                  title={genre.description || genre.name}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 font-semibold'
+                      : 'bg-slate-100 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border border-transparent hover:border-indigo-100'
+                  }`}
+                >
+                  <span>{genre.name}</span>
+                  {genre.comicCount !== undefined && genre.comicCount > 0 && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'bg-slate-200 text-slate-600'
+                      }`}
+                    >
+                      {genre.comicCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter & Search Toolbar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 soft-shadow flex flex-wrap items-center justify-between gap-4">
@@ -162,15 +252,27 @@ export const HomePage: React.FC = () => {
 
       </div>
 
-      {/* Search Header Info */}
-      {searchQuery && (
-        <div className="flex items-center justify-between text-xs text-slate-600 bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl">
-          <span>Kết quả tìm kiếm cho từ khóa: <strong className="text-indigo-700">"{searchQuery}"</strong></span>
+      {/* Search & Active Genre Info */}
+      {(searchQuery || currentGenreSlug !== 'ALL') && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 bg-indigo-50/60 border border-indigo-100 p-3 rounded-xl">
+          <div className="flex items-center gap-2">
+            <span>Đang hiển thị kết quả cho:</span>
+            {currentGenreSlug !== 'ALL' && selectedGenreObj && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-semibold">
+                Thể loại: {selectedGenreObj.name}
+              </span>
+            )}
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 font-semibold">
+                Từ khóa: "{searchQuery}"
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setSearchParams({})}
             className="text-indigo-600 font-semibold hover:underline"
           >
-            Xóa tìm kiếm
+            Xóa tất cả bộ lọc
           </button>
         </div>
       )}
@@ -191,7 +293,7 @@ export const HomePage: React.FC = () => {
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
           <h3 className="text-base font-bold text-slate-700">Không tìm thấy truyện nào</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt bộ lọc để khám phá các bộ truyện khác.
+            Thử thay đổi thể loại, từ khóa tìm kiếm hoặc bỏ bớt bộ lọc để khám phá các bộ truyện khác.
           </p>
         </div>
       ) : (

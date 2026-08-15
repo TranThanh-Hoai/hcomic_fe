@@ -14,6 +14,7 @@ import { CommentSection } from '../components/CommentSection';
 import { ComicModal } from '../components/ComicModal';
 import { ChapterModal } from '../components/ChapterModal';
 import { ShelfSelector } from '../components/ShelfSelector';
+import { GenreBadge } from '../components/GenreBadge';
 import { useAuth } from '../context/AuthContext';
 import {
   Eye,
@@ -312,6 +313,16 @@ export const ComicDetailPage: React.FC = () => {
                   <Calendar className="w-3.5 h-3.5 text-slate-400" /> Ngày tạo: {new Date(comic.createdAt).toLocaleDateString('vi-VN')}
                 </span>
               </div>
+
+              {/* Genres Badge List */}
+              {comic.genres && comic.genres.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs font-semibold text-slate-500 mr-1">Thể loại:</span>
+                  {comic.genres.map((genre) => (
+                    <GenreBadge key={genre.id} genre={genre} size="sm" />
+                  ))}
+                </div>
+              )}
 
               {/* Description */}
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-3 whitespace-pre-line">

@@ -51,6 +51,23 @@ export const ComicCard: React.FC<ComicCardProps> = ({ comic }) => {
             <User className="w-3 h-3 text-slate-400" />
             {comic.author || comic.uploader || 'Chưa cập nhật'}
           </p>
+          {comic.genres && comic.genres.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1 mt-1.5">
+              {comic.genres.slice(0, 2).map((g) => (
+                <span
+                  key={g.id}
+                  className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 rounded text-[10px] font-medium"
+                >
+                  {g.name}
+                </span>
+              ))}
+              {comic.genres.length > 2 && (
+                <span className="text-[10px] text-slate-400 font-medium">
+                  +{comic.genres.length - 2}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
