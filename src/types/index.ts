@@ -23,6 +23,7 @@ export interface User {
 export interface AuthResponse {
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
   tokenType?: string;
   username: string;
   displayName?: string;
@@ -141,12 +142,25 @@ export interface ComicRequestData {
   genreIds?: number[];
 }
 
+export interface ComicFilterParams {
+  query?: string;
+  q?: string;
+  genre?: string;
+  genres?: string[];
+  status?: ComicStatus | 'ALL';
+  uploader?: string;
+  page?: number;
+  size?: number;
+  sortBy?: 'newest' | 'views' | 'rating' | 'title';
+  sortDir?: 'asc' | 'desc';
+}
+
 export interface ChapterRequestData {
   chapterNumber: number;
   title?: string;
 }
 
-export type ShelfStatus = 'READING' | 'FAVORITE' | 'COMPLETED' | 'READ_LATER';
+export type ShelfStatus = 'READING' | 'FAVORITE' | 'COMPLETED' | 'READ_LATER' | 'PLAN_TO_READ';
 
 export interface ReadingHistoryRequest {
   comicId: number;

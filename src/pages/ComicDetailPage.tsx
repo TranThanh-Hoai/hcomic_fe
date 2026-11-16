@@ -15,6 +15,7 @@ import { ComicModal } from '../components/ComicModal';
 import { ChapterModal } from '../components/ChapterModal';
 import { ShelfSelector } from '../components/ShelfSelector';
 import { GenreBadge } from '../components/GenreBadge';
+import { ReportModal } from '../components/ReportModal';
 import { useAuth } from '../context/AuthContext';
 import {
   Eye,
@@ -28,6 +29,8 @@ import {
   Calendar,
   Sparkles,
   PlayCircle,
+  Flag,
+  Search,
 } from 'lucide-react';
 
 export const ComicDetailPage: React.FC = () => {
@@ -37,6 +40,7 @@ export const ComicDetailPage: React.FC = () => {
 
   const [comic, setComic] = useState<ComicResponse | null>(null);
   const [chapters, setChapters] = useState<ChapterResponse[]>([]);
+  const [chapterFilterQuery, setChapterFilterQuery] = useState<string>('');
   const [comments, setComments] = useState<CommentResponse[]>([]);
   const [commentPage, setCommentPage] = useState<number>(0);
   const [hasMoreComments, setHasMoreComments] = useState<boolean>(false);
@@ -53,6 +57,7 @@ export const ComicDetailPage: React.FC = () => {
   // Modals state
   const [isEditComicOpen, setIsEditComicOpen] = useState<boolean>(false);
   const [isAddChapterOpen, setIsAddChapterOpen] = useState<boolean>(false);
+  const [isReportOpen, setIsReportOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (slug) {
@@ -121,7 +126,6 @@ export const ComicDetailPage: React.FC = () => {
     try {
       await rateService.rateComic(comic.id, score);
       setUserScore(score);
-      // Refresh avg rating
       const avg = await rateService.getAverageRating(comic.id);
       setComic((prev) => (prev ? { ...prev, rating: avg } : null));
     } catch (err: any) {
@@ -169,7 +173,6 @@ export const ComicDetailPage: React.FC = () => {
   const handleCreateChapter = async (data: ChapterRequestData, imageFiles: File[]) => {
     if (!comic) return;
     await chapterService.createChapter(comic.id, data, imageFiles);
-    // Refresh chapters
     if (slug) {
       const updatedChapters = await chapterService.getChaptersByComicSlug(slug, sortOrder);
       setChapters(updatedChapters);
@@ -224,8 +227,8 @@ export const ComicDetailPage: React.FC = () => {
   if (loading) {
     return (
       <div className="py-12 max-w-5xl mx-auto space-y-6 animate-pulse">
-        <div className="bg-white rounded-3xl h-80 border border-slate-200" />
-        <div className="bg-white rounded-2xl h-48 border border-slate-200" />
+        <div className="bg-[#141721] rounded-3xl h-80 border border-white/5" />
+        <div className="bg-[#141721] rounded-2xl h-48 border border-white/5" />
       </div>
     );
   }
@@ -233,10 +236,10 @@ export const ComicDetailPage: React.FC = () => {
   if (error || !comic) {
     return (
       <div className="py-12 text-center max-w-lg mx-auto space-y-4">
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
+        <div className="p-6 bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
           {error || 'Không tìm thấy truyện yêu cầu'}
         </div>
-        <Link to="/" className="inline-block text-xs font-bold text-indigo-600 hover:underline">
+        <Link to="/" className="inline-block text-xs font-bold text-orange-400 hover:underline">
           ← Trở về Trang Chủ
         </Link>
       </div>
@@ -246,190 +249,246 @@ export const ComicDetailPage: React.FC = () => {
   const isOwnerOrAdmin =
     user && (user.role === 'ADMIN' || (user.role === 'TRANSLATOR' && comic.uploader === user.username));
 
-  const firstChapter = chapters.length > 0 ? chapters[chapters.length - 1] : null;
-  const latestChapter = chapters.length > 0 ? chapters[0] : null;
+  // Determine first chapter and latest chapter
+  const sortedAsc = [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+  const firstChapter = sortedAsc.length > 0 ? sortedAsc[0] : null;
+  const latestChapter = sortedAsc.length > 0 ? sortedAsc[sortedAsc.length - 1] : null;
+
+  // Filtered chapters
+  const filteredChapters = chapters.filter((c) => {
+    if (!chapterFilterQuery.trim()) return true;
+    const q = chapterFilterQuery.toLowerCase();
+    return (
+      c.chapterNumber.toString().includes(q) ||
+      (c.title && c.title.toLowerCase().includes(q))
+    );
+  });
 
   return (
-    <div className="py-8 space-y-8 animate-fade-in">
+    <div className="py-6 space-y-8 animate-fade-in text-left">
       
-      {/* Top Banner Card */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 soft-shadow">
-        <div className="flex flex-col md:flex-row gap-6 sm:gap-8">
-          
-          {/* Cover Image */}
-          <div className="relative w-48 sm:w-56 aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-slate-200 shrink-0 mx-auto md:mx-0 bg-slate-100">
-            <img
-              src={getImageUrl(comic.coverImage)}
-              alt={comic.title}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=400&auto=format&fit=crop';
-              }}
-            />
-            <div className="absolute top-3 left-3">
-              <StatusBadge status={comic.status} />
+      {/* Top Banner Card with Blurred Background */}
+      <div className="relative rounded-3xl overflow-hidden bg-[#141721] border border-white/5 soft-shadow">
+        
+        {/* Backdrop cover blur */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <img
+            src={getImageUrl(comic.coverImage)}
+            alt={comic.title}
+            className="w-full h-full object-cover blur-3xl scale-125 opacity-20"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0e1017] via-[#0e1017]/90 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#141721] via-transparent to-transparent" />
+        </div>
+
+        <div className="relative z-10 p-6 sm:p-8">
+          <div className="flex flex-col md:flex-row gap-6 sm:gap-8">
+            
+            {/* 3:4 High-res Cover Image */}
+            <div className="relative w-48 sm:w-60 aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl border border-white/10 shrink-0 mx-auto md:mx-0 bg-[#090a0f] group">
+              <img
+                src={getImageUrl(comic.coverImage)}
+                alt={comic.title}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=400&auto=format&fit=crop';
+                }}
+              />
+              <div className="absolute top-3 left-3 z-10">
+                <StatusBadge status={comic.status} />
+              </div>
             </div>
-          </div>
 
-          {/* Details */}
-          <div className="flex-1 flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-4">
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-                  {comic.title}
-                </h1>
+            {/* Details Column */}
+            <div className="flex-1 flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    {comic.title}
+                  </h1>
 
-                {/* Admin/Owner Buttons */}
-                {isOwnerOrAdmin && (
+                  {/* Actions for Admin / Owner */}
                   <div className="flex items-center gap-2 shrink-0">
+                    {isOwnerOrAdmin && (
+                      <>
+                        <button
+                          onClick={() => setIsEditComicOpen(true)}
+                          className="p-2 text-zinc-400 hover:text-white bg-[#090a0f] hover:bg-white/5 rounded-xl border border-white/5 transition-colors cursor-pointer"
+                          title="Sửa truyện"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleDeleteComic}
+                          className="p-2 text-zinc-400 hover:text-red-400 bg-[#090a0f] hover:bg-red-950/30 rounded-xl border border-white/5 transition-colors cursor-pointer"
+                          title="Xóa truyện"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+
+                    {/* Report Violation Button */}
                     <button
-                      onClick={() => setIsEditComicOpen(true)}
-                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl border border-indigo-200/60 transition-colors"
-                      title="Sửa truyện"
+                      onClick={() => setIsReportOpen(true)}
+                      className="p-2 text-zinc-500 hover:text-amber-400 bg-[#090a0f] hover:bg-white/5 rounded-xl border border-white/5 transition-colors cursor-pointer"
+                      title="Báo cáo vi phạm"
                     >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleDeleteComic}
-                      className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200/60 transition-colors"
-                      title="Xóa truyện"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                      <Flag className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+
+                {/* Author & Uploader & Date */}
+                <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-400 font-medium">
+                  <span className="flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-orange-400" /> Tác giả: <strong className="text-zinc-200">{comic.author || 'Đang cập nhật'}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Dịch giả: <strong className="text-zinc-200">{comic.uploader || 'HComic Team'}</strong>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-zinc-500" /> Ngày đăng: {new Date(comic.createdAt).toLocaleDateString('vi-VN')}
+                  </span>
+                </div>
+
+                {/* Genres */}
+                {comic.genres && comic.genres.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-xs font-bold text-zinc-400 mr-1">Thể loại:</span>
+                    {comic.genres.map((genre) => (
+                      <GenreBadge key={genre.id} genre={genre} size="sm" />
+                    ))}
+                  </div>
                 )}
+
+                {/* Description */}
+                <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed bg-[#090a0f] p-4 rounded-2xl border border-white/5 mt-2 whitespace-pre-line">
+                  {comic.description || 'Chưa có mô tả chi tiết cho bộ truyện này.'}
+                </p>
               </div>
 
-              {/* Author & Uploader Info */}
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-indigo-500" /> Tác giả: <strong className="text-slate-700">{comic.author || 'Đang cập nhật'}</strong>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-teal-500" /> Người đăng: <strong className="text-slate-700">{comic.uploader || 'HComic System'}</strong>
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" /> Ngày tạo: {new Date(comic.createdAt).toLocaleDateString('vi-VN')}
-                </span>
+              {/* Metrics & Interactive Buttons */}
+              <div className="pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-4">
+                
+                {/* Stats */}
+                <div className="flex items-center gap-6">
+                  <div>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">
+                      ĐÁNH GIÁ TRUNG BÌNH
+                    </span>
+                    <RatingStars rating={comic.rating} size={16} />
+                  </div>
+
+                  <div className="border-l border-white/10 pl-6">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-0.5">
+                      LƯỢT XEM
+                    </span>
+                    <span className="text-sm font-black text-white flex items-center gap-1">
+                      <Eye className="w-4 h-4 text-zinc-500" />
+                      {comic.viewCount?.toLocaleString() || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <ShelfSelector comicId={comic.id} />
+
+                  <button
+                    onClick={handleToggleLike}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border cursor-pointer ${
+                      isLiked
+                        ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/25'
+                        : 'bg-[#090a0f] text-rose-400 border-white/10 hover:border-rose-500/40 hover:bg-rose-950/20'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 ${isLiked ? 'fill-white' : 'fill-rose-500 text-rose-500'}`} />
+                    <span>{isLiked ? 'Đã Thích' : 'Yêu Thích'} ({likeCount})</span>
+                  </button>
+
+                  {readingProgress && readingProgress.chapterSlug ? (
+                    <Link
+                      to={`/read/${comic.slug}/${readingProgress.chapterSlug}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-emerald-500/20 hover:scale-105"
+                    >
+                      <PlayCircle className="w-4 h-4" /> Đọc Tiếp (Chương {readingProgress.chapterNumber})
+                    </Link>
+                  ) : firstChapter ? (
+                    <Link
+                      to={`/read/${comic.slug}/${firstChapter.slug}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-orange-500/25 hover:scale-105"
+                    >
+                      <BookOpen className="w-4 h-4" /> Đọc Từ Đầu
+                    </Link>
+                  ) : null}
+
+                  {latestChapter && latestChapter !== firstChapter && (!readingProgress || readingProgress.chapterSlug !== latestChapter.slug) && (
+                    <Link
+                      to={`/read/${comic.slug}/${latestChapter.slug}`}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#090a0f] hover:bg-white/5 text-zinc-200 hover:text-white border border-white/10 rounded-xl text-xs font-bold transition-all"
+                    >
+                      Chương Mới Nhất
+                    </Link>
+                  )}
+                </div>
+
               </div>
 
-              {/* Genres Badge List */}
-              {comic.genres && comic.genres.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-xs font-semibold text-slate-500 mr-1">Thể loại:</span>
-                  {comic.genres.map((genre) => (
-                    <GenreBadge key={genre.id} genre={genre} size="sm" />
-                  ))}
+              {/* User Interactive Rating Input */}
+              {isAuthenticated && (
+                <div className="bg-[#090a0f] border border-white/5 p-3 rounded-2xl flex items-center justify-between text-xs text-zinc-300">
+                  <span className="font-semibold">Đánh giá của bạn về truyện:</span>
+                  <RatingStars
+                    rating={userScore || 0}
+                    readOnly={false}
+                    onRate={handleRate}
+                    size={18}
+                  />
                 </div>
               )}
 
-              {/* Description */}
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 mt-3 whitespace-pre-line">
-                {comic.description || 'Chưa có mô tả chi tiết cho bộ truyện này.'}
-              </p>
             </div>
-
-            {/* Metrics & Rating */}
-            <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-6">
-                <div>
-                  <span className="text-[11px] font-semibold text-slate-400 block">ĐÁNH GIÁ TRUNG BÌNH</span>
-                  <RatingStars rating={comic.rating} size={18} />
-                </div>
-
-                <div className="border-l border-slate-200 pl-6">
-                  <span className="text-[11px] font-semibold text-slate-400 block">LƯỢT XEM</span>
-                  <span className="text-sm font-bold text-slate-700 flex items-center gap-1">
-                    <Eye className="w-4 h-4 text-slate-400" />
-                    {comic.viewCount?.toLocaleString() || 0}
-                  </span>
-                </div>
-              </div>
-
-              {/* Interactive Actions */}
-              <div className="flex flex-wrap items-center gap-3">
-                <ShelfSelector comicId={comic.id} />
-
-                <button
-                  onClick={handleToggleLike}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm ${
-                    isLiked
-                      ? 'bg-rose-500 text-white shadow-rose-200 hover:bg-rose-600'
-                      : 'bg-rose-50 text-rose-600 border border-rose-200/80 hover:bg-rose-100'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${isLiked ? 'fill-white' : 'fill-rose-500'}`} />
-                  <span>{isLiked ? 'Đã Thích' : 'Yêu Thích'} ({likeCount})</span>
-                </button>
-
-                {readingProgress && readingProgress.chapterSlug ? (
-                  <Link
-                    to={`/read/${comic.slug}/${readingProgress.chapterSlug}`}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-200"
-                  >
-                    <PlayCircle className="w-4 h-4" /> Đọc Tiếp (Chương {readingProgress.chapterNumber}{readingProgress.pageNumber ? ` - Trang ${readingProgress.pageNumber}` : ''})
-                  </Link>
-                ) : firstChapter ? (
-                  <Link
-                    to={`/read/${comic.slug}/${firstChapter.slug}`}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-200"
-                  >
-                    <BookOpen className="w-4 h-4" /> Đọc Từ Đầu
-                  </Link>
-                ) : null}
-
-                {latestChapter && latestChapter !== firstChapter && (!readingProgress || readingProgress.chapterSlug !== latestChapter.slug) && (
-                  <Link
-                    to={`/read/${comic.slug}/${latestChapter.slug}`}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-teal-200"
-                  >
-                    Chương Mới Nhất
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {/* Interactive User Star Rate Input */}
-            {isAuthenticated && (
-              <div className="bg-amber-50/60 border border-amber-100 p-3 rounded-2xl flex items-center justify-between text-xs text-amber-900">
-                <span>Đánh giá của bạn:</span>
-                <RatingStars
-                  rating={userScore || 0}
-                  readOnly={false}
-                  onRate={handleRate}
-                  size={20}
-                />
-              </div>
-            )}
-
           </div>
         </div>
       </div>
 
       {/* Chapters Section */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 soft-shadow space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="bg-[#141721] rounded-3xl p-6 sm:p-8 border border-white/5 soft-shadow space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-lg font-bold text-slate-800">
+            <BookOpen className="w-5 h-5 text-orange-400" />
+            <h2 className="text-lg font-bold text-white tracking-tight">
               Danh Sách Chương ({chapters.length})
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Quick search chapter input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Tìm số chương..."
+                value={chapterFilterQuery}
+                onChange={(e) => setChapterFilterQuery(e.target.value)}
+                className="w-36 sm:w-44 pl-8 pr-3 py-1.5 text-xs bg-[#090a0f] text-white border border-white/10 rounded-xl focus:outline-none focus:border-orange-500/50"
+              />
+              <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
+            </div>
+
             <button
               onClick={handleSortToggle}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#090a0f] hover:bg-white/5 text-zinc-300 rounded-xl text-xs font-semibold border border-white/5 transition-colors cursor-pointer"
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
-              {sortOrder === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'}
+              <span>{sortOrder === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'}</span>
             </button>
 
             {isOwnerOrAdmin && (
               <button
                 onClick={() => setIsAddChapterOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-indigo-200"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20 cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4" /> Thêm Chương Mới
               </button>
@@ -438,32 +497,36 @@ export const ComicDetailPage: React.FC = () => {
         </div>
 
         {chapters.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-8">
+          <p className="text-xs text-zinc-500 text-center py-8">
             Chưa có chương nào được tải lên cho bộ truyện này.
+          </p>
+        ) : filteredChapters.length === 0 ? (
+          <p className="text-xs text-zinc-500 text-center py-8">
+            Không tìm thấy chương nào khớp với "{chapterFilterQuery}".
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {chapters.map((chap) => (
+            {filteredChapters.map((chap) => (
               <div
                 key={chap.id}
-                className="group flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:bg-indigo-50/60 hover:border-indigo-200 transition-all"
+                className="group flex items-center justify-between p-3.5 rounded-2xl bg-[#090a0f] border border-white/5 hover:border-orange-500/30 hover:bg-white/5 transition-all"
               >
                 <Link
                   to={`/read/${comic.slug}/${chap.slug}`}
                   className="flex-1 min-w-0 pr-2"
                 >
-                  <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 block truncate">
+                  <span className="text-xs font-bold text-zinc-200 group-hover:text-orange-400 block truncate transition-colors">
                     Chương {chap.chapterNumber}{chap.title ? `: ${chap.title}` : ''}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">
-                    {new Date(chap.createdAt).toLocaleDateString('vi-VN')}
+                  <span className="text-[10px] text-zinc-500 block mt-0.5">
+                    {new Date(chap.createdAt).toLocaleDateString('vi-VN')} • {chap.viewCount?.toLocaleString() || 0} lượt xem
                   </span>
                 </Link>
 
                 {isOwnerOrAdmin && (
                   <button
                     onClick={() => handleDeleteChapter(chap.id)}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-600 transition-all rounded-lg hover:bg-white"
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-red-400 transition-all rounded-lg hover:bg-white/5 cursor-pointer"
                     title="Xóa chương"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -506,6 +569,15 @@ export const ComicDetailPage: React.FC = () => {
           comicTitle={comic.title}
         />
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        reportType="COMIC"
+        targetId={comic.id}
+        targetTitle={comic.title}
+      />
 
     </div>
   );

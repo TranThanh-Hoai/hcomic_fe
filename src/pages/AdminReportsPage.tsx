@@ -39,14 +39,18 @@ export const AdminReportsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Xử Lý Báo Cáo Vi Phạm</h1>
-        <p className="text-xs text-slate-500 mt-1">Tiếp nhận và giải quyết phản ánh từ người dùng về bình luận, chapter và truyện vi phạm</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          Xử Lý Báo Cáo Vi Phạm
+        </h1>
+        <p className="text-xs text-zinc-400 mt-1">
+          Tiếp nhận và giải quyết phản ánh từ người dùng về bình luận, chapter và truyện vi phạm
+        </p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap gap-3 items-center justify-between">
+      <div className="bg-[#141721] rounded-2xl border border-white/5 p-4 shadow-xl flex flex-wrap gap-3 items-center justify-between">
         <div className="flex gap-2">
           {(['PENDING', 'RESOLVED', 'DISMISSED'] as const).map((st) => (
             <button
@@ -55,10 +59,10 @@ export const AdminReportsPage: React.FC = () => {
                 setStatusFilter(st);
                 setPage(0);
               }}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 statusFilter === st
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  : 'bg-[#090a0f] text-zinc-400 hover:text-white border border-white/5'
               }`}
             >
               {st === 'PENDING' ? 'Chờ xử lý' : st === 'RESOLVED' ? 'Đã giải quyết' : 'Đã bỏ qua'}
@@ -73,7 +77,7 @@ export const AdminReportsPage: React.FC = () => {
               setTypeFilter(e.target.value as any);
               setPage(0);
             }}
-            className="text-xs rounded-lg border border-slate-300 p-2 bg-white outline-none"
+            className="text-xs rounded-xl border border-white/10 p-2.5 bg-[#090a0f] text-white outline-none focus:border-orange-500/50 cursor-pointer"
           >
             <option value="">Tất cả loại vi phạm</option>
             <option value="COMMENT">Bình luận (Comment)</option>
@@ -91,17 +95,17 @@ export const AdminReportsPage: React.FC = () => {
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            className="px-3.5 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#141721] border border-white/10 rounded-xl hover:bg-white/5 disabled:opacity-40 cursor-pointer"
           >
             Trang trước
           </button>
-          <span className="text-xs font-medium text-slate-500">
+          <span className="text-xs font-bold text-zinc-400">
             Trang {page + 1} / {totalPages}
           </span>
           <button
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            className="px-3.5 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#141721] border border-white/10 rounded-xl hover:bg-white/5 disabled:opacity-40 cursor-pointer"
           >
             Trang sau
           </button>

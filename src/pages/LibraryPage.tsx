@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import type { ShelfStatus, UserComicLibraryResponse } from '../types';
+import type { ShelfStatus, UserComicLibraryResponse, ReadingHistoryResponse, PageBookmarkResponse } from '../types';
 import { libraryService } from '../services/libraryService';
+import { historyService } from '../services/historyService';
+import { bookmarkService } from '../services/bookmarkService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { getImageUrl } from '../services/apiClient';
@@ -13,39 +15,87 @@ import {
   BookOpen,
   Trash2,
   Lock,
-  Sparkles,
+  PlayCircle,
+  ExternalLink,
+  BookmarkCheck,
 } from 'lucide-react';
 
-const TABS: { key: ShelfStatus | 'ALL'; label: string; icon: React.FC<{ className?: string }> }[] = [
+type MainTab = 'SHELF' | 'HISTORY' | 'BOOKMARKS';
+
+const SHELF_SUBTABS: { key: ShelfStatus | 'ALL'; label: string; icon: React.FC<{ className?: string }> }[] = [
   { key: 'ALL', label: 'Tất Cả', icon: Bookmark },
   { key: 'READING', label: 'Đang Đọc', icon: BookOpen },
   { key: 'FAVORITE', label: 'Yêu Thích', icon: Heart },
-  { key: 'COMPLETED', label: 'Đã Đọc Xong', icon: BookCheck },
+  { key: 'COMPLETED', label: 'Đã Xong', icon: BookCheck },
   { key: 'READ_LATER', label: 'Đọc Sau', icon: Clock },
 ];
 
 export const LibraryPage: React.FC = () => {
   const { isAuthenticated } = useAuth();
-  const [activeTab, setActiveTab] = useState<ShelfStatus | 'ALL'>('ALL');
+  
+  // 3 Primary Tabs
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('SHELF');
+
+  // Tab 1: Library Shelf State
+  const [shelfSubTab, setShelfSubTab] = useState<ShelfStatus | 'ALL'>('ALL');
   const [libraryItems, setLibraryItems] = useState<UserComicLibraryResponse[]>([]);
+  
+  // Tab 2: Reading History State
+  const [historyItems, setHistoryItems] = useState<ReadingHistoryResponse[]>([]);
+  
+  // Tab 3: Bookmarks State
+  const [bookmarkItems, setBookmarkItems] = useState<PageBookmarkResponse[]>([]);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated) return;
+
+    if (activeMainTab === 'SHELF') {
       fetchLibrary();
+    } else if (activeMainTab === 'HISTORY') {
+      fetchHistory();
+    } else if (activeMainTab === 'BOOKMARKS') {
+      fetchBookmarks();
     }
-  }, [isAuthenticated, activeTab]);
+  }, [isAuthenticated, activeMainTab, shelfSubTab]);
 
   const fetchLibrary = async () => {
     try {
       setLoading(true);
       setError('');
-      const statusParam = activeTab === 'ALL' ? undefined : activeTab;
+      const statusParam = shelfSubTab === 'ALL' ? undefined : shelfSubTab;
       const data = await libraryService.getUserLibrary(statusParam);
       setLibraryItems(data);
     } catch (err: any) {
-      setError(err.message || 'Không thể tải danh sách Tủ sách cá nhân');
+      setError(err.message || 'Không thể tải danh sách Tủ sách');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await historyService.getUserHistory();
+      setHistoryItems(data);
+    } catch (err: any) {
+      setError(err.message || 'Không thể tải lịch sử đọc');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchBookmarks = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await bookmarkService.getBookmarks();
+      setBookmarkItems(data);
+    } catch (err: any) {
+      setError(err.message || 'Không thể tải danh sách bookmarks');
     } finally {
       setLoading(false);
     }
@@ -62,36 +112,32 @@ export const LibraryPage: React.FC = () => {
     }
   };
 
-  const handleChangeStatus = async (comicId: number, newStatus: ShelfStatus) => {
-    try {
-      const updated = await libraryService.updateLibraryStatus(comicId, newStatus);
-      if (updated) {
-        if (activeTab !== 'ALL' && activeTab !== newStatus) {
-          setLibraryItems((prev) => prev.filter((item) => item.comicId !== comicId));
-        } else {
-          setLibraryItems((prev) =>
-            prev.map((item) => (item.comicId === comicId ? { ...item, status: newStatus } : item))
-          );
-        }
+  const handleDeleteBookmark = async (bookmarkId: number) => {
+    if (window.confirm('Bạn có chắc chắn muốn xóa trang đánh dấu này?')) {
+      try {
+        await bookmarkService.deleteBookmark(bookmarkId);
+        setBookmarkItems((prev) => prev.filter((item) => item.id !== bookmarkId));
+      } catch (err: any) {
+        alert(err.message || 'Lỗi khi xóa bookmark');
       }
-    } catch (err: any) {
-      alert(err.message || 'Lỗi khi cập nhật trạng thái tủ sách');
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="py-16 max-w-md mx-auto text-center space-y-4">
-        <div className="p-8 bg-indigo-50/80 border border-indigo-100 rounded-3xl space-y-3">
-          <Lock className="w-12 h-12 text-indigo-600 mx-auto" />
-          <h3 className="text-lg font-bold text-slate-800">Yêu cầu Đăng Nhập</h3>
-          <p className="text-xs text-slate-500">
-            Vui lòng đăng nhập tài khoản để quản lý Tủ sách cá nhân, phân loại truyện và tự động lưu tiến độ đọc chi tiết.
+      <div className="py-20 max-w-md mx-auto text-center space-y-4 px-4">
+        <div className="p-8 bg-[#141721] border border-white/5 rounded-3xl space-y-4 soft-shadow">
+          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 mx-auto flex items-center justify-center text-orange-400">
+            <Lock className="w-7 h-7" />
+          </div>
+          <h3 className="text-xl font-bold text-white tracking-tight">Yêu Cầu Đăng Nhập</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Đăng nhập để theo dõi truyện tranh, tự động ghi nhớ trang bạn vừa đọc và quản lý toàn bộ bookmark cá nhân.
           </p>
           <div className="pt-2">
             <Link
               to="/login"
-              className="inline-block px-5 py-2.5 bg-indigo-600 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-200"
+              className="inline-block px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition-all hover:scale-105"
             >
               Đăng Nhập Ngay
             </Link>
@@ -102,175 +148,348 @@ export const LibraryPage: React.FC = () => {
   }
 
   return (
-    <div className="py-8 space-y-8 animate-fade-in max-w-6xl mx-auto">
+    <div className="py-6 space-y-8 animate-fade-in text-left">
       
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <Bookmark className="w-6 h-6 text-indigo-600 fill-indigo-100" />
-            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
-              Tủ Sách Cá Nhân
-            </h1>
-          </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Quản lý truyện đang đọc, yêu thích, đã đọc xong và xem lại tiến độ đọc của bạn.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Tủ Sách & Lịch Sử Cá Nhân
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Không gian lưu trữ, tiếp tục hành trình đọc truyện tranh và các trang đánh dấu của bạn.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold bg-slate-100 px-3 py-1.5 rounded-xl text-slate-600">
-          <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Tổng cộng: {libraryItems.length} bộ truyện</span>
-        </div>
-      </div>
-
-      {/* Tabs Bar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                isActive
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white h-44 rounded-3xl animate-pulse border border-slate-200" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs text-center">
-          {error}
-        </div>
-      ) : libraryItems.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 soft-shadow space-y-4">
-          <Bookmark className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-base font-bold text-slate-700">Tủ sách trống</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {activeTab === 'ALL'
-              ? 'Bạn chưa thêm bộ truyện nào vào Tủ sách cá nhân. Hãy khám phá và thêm truyện yêu thích ngay!'
-              : 'Chưa có bộ truyện nào ở mục này.'}
-          </p>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm"
+        {/* 3 Main Tabs */}
+        <div className="flex items-center gap-1.5 bg-[#141721] p-1.5 rounded-2xl border border-white/5 shrink-0">
+          <button
+            onClick={() => setActiveMainTab('SHELF')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMainTab === 'SHELF'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                : 'text-zinc-400 hover:text-white'
+            }`}
           >
-            Khám Phá Truyện Hay
-          </Link>
+            <Bookmark className="w-3.5 h-3.5" />
+            <span>Đang Theo Dõi</span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('HISTORY')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMainTab === 'HISTORY'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Lịch Sử Đọc</span>
+          </button>
+
+          <button
+            onClick={() => setActiveMainTab('BOOKMARKS')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeMainTab === 'BOOKMARKS'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <BookmarkCheck className="w-3.5 h-3.5" />
+            <span>Bookmarks</span>
+          </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {libraryItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-3xl border border-slate-200/90 p-4 soft-shadow hover:shadow-lg transition-all flex flex-col justify-between space-y-3 group"
-            >
-              <div className="flex gap-3.5">
-                {/* Cover image */}
-                <Link to={`/comic/${item.comicSlug}`} className="shrink-0">
-                  <img
-                    src={getImageUrl(item.coverImage)}
-                    alt={item.comicTitle}
-                    className="w-20 h-28 object-cover rounded-2xl border border-slate-100 shadow-sm group-hover:scale-105 transition-transform"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=200&auto=format&fit=crop';
-                    }}
-                  />
+      </div>
+
+      {/* ================= TAB 1: SHELF ================= */}
+      {activeMainTab === 'SHELF' && (
+        <div className="space-y-6">
+          
+          {/* Subtabs for Shelves */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {SHELF_SUBTABS.map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = shelfSubTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setShelfSubTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold'
+                      : 'bg-[#141721] text-zinc-400 hover:text-white border border-white/5'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-44 bg-[#141721] rounded-2xl animate-pulse border border-white/5" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
+              {error}
+            </div>
+          ) : libraryItems.length === 0 ? (
+            <div className="p-16 text-center bg-[#141721] rounded-3xl border border-white/5 soft-shadow space-y-3">
+              <BookOpen className="w-12 h-12 text-zinc-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">Chưa có truyện nào trong phân loại này</h3>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                Khám phá kho truyện tranh và ấn "+ Lưu Vào Tủ Sách" để quản lý tiện lợi.
+              </p>
+              <div className="pt-2">
+                <Link
+                  to="/search"
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-colors inline-block"
+                >
+                  Khám Phá Truyện Mới
                 </Link>
-
-                {/* Details */}
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-start justify-between gap-1">
-                    <StatusBadge status={item.comicStatus} />
-                    <button
-                      onClick={() => handleRemoveFromLibrary(item.comicId, item.comicTitle)}
-                      className="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
-                      title="Gỡ khỏi tủ sách"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {libraryItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="group bg-[#141721] rounded-2xl p-3 border border-white/5 hover:border-orange-500/30 transition-all flex gap-3 soft-shadow relative"
+                >
+                  {/* Poster Thumbnail */}
                   <Link
                     to={`/comic/${item.comicSlug}`}
-                    className="text-xs font-extrabold text-slate-800 hover:text-indigo-600 block line-clamp-2"
+                    className="w-20 aspect-[3/4] rounded-xl overflow-hidden bg-[#090a0f] border border-white/5 shrink-0 block"
                   >
-                    {item.comicTitle}
+                    <img
+                      src={getImageUrl(item.coverImage)}
+                      alt={item.comicTitle}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=400&auto=format&fit=crop';
+                      }}
+                    />
                   </Link>
 
-                  <p className="text-[11px] text-slate-400 font-medium truncate">
-                    Tác giả: {item.author || 'Đang cập nhật'}
-                  </p>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-1">
+                        <Link
+                          to={`/comic/${item.comicSlug}`}
+                          className="text-xs font-bold text-white hover:text-orange-400 truncate block transition-colors"
+                          title={item.comicTitle}
+                        >
+                          {item.comicTitle}
+                        </Link>
+                        <button
+                          onClick={() => handleRemoveFromLibrary(item.comicId, item.comicTitle)}
+                          className="text-zinc-600 hover:text-red-400 transition-colors p-1 cursor-pointer shrink-0"
+                          title="Xóa khỏi tủ sách"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
 
-                  {/* Reading Status Badge */}
-                  <div className="pt-1">
-                    <select
-                      value={item.status}
-                      onChange={(e) => handleChangeStatus(item.comicId, e.target.value as ShelfStatus)}
-                      className="px-2.5 py-1 bg-slate-100 border border-slate-200 text-[11px] font-bold rounded-lg text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                    >
-                      <option value="READING">📖 Đang Đọc</option>
-                      <option value="FAVORITE">❤️ Yêu Thích</option>
-                      <option value="COMPLETED">✅ Đã Đọc Xong</option>
-                      <option value="READ_LATER">⏰ Đọc Sau</option>
-                    </select>
+                      <p className="text-[10px] text-zinc-400 truncate mt-0.5">
+                        {item.author || 'Đang cập nhật'}
+                      </p>
+
+                      <div className="mt-2">
+                        <StatusBadge status={item.comicStatus} />
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      {item.lastReadChapterSlug ? (
+                        <Link
+                          to={`/read/${item.comicSlug}/${item.lastReadChapterSlug}`}
+                          className="w-full py-1.5 px-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[10px] font-bold transition-colors flex items-center justify-center gap-1 shadow-sm"
+                        >
+                          <PlayCircle className="w-3 h-3" /> Đọc Tiếp Ch.{item.lastReadChapterNumber}
+                        </Link>
+                      ) : (
+                        <Link
+                          to={`/comic/${item.comicSlug}`}
+                          className="w-full py-1.5 px-2 bg-[#090a0f] hover:bg-white/5 text-zinc-300 rounded-lg text-[10px] font-bold border border-white/5 transition-colors flex items-center justify-center gap-1"
+                        >
+                          Xem Chi Tiết
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-              {/* Progress & Read Next Button */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  {item.lastReadChapterNumber != null ? (
-                    <div>
-                      <span className="text-[11px] font-bold text-indigo-700 block truncate">
-                        Đang dừng: Chương {item.lastReadChapterNumber} {item.lastReadPageNumber ? `(Trang ${item.lastReadPageNumber})` : ''}
+      {/* ================= TAB 2: READING HISTORY ================= */}
+      {activeMainTab === 'HISTORY' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-[#141721] rounded-2xl animate-pulse border border-white/5" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
+              {error}
+            </div>
+          ) : historyItems.length === 0 ? (
+            <div className="p-16 text-center bg-[#141721] rounded-3xl border border-white/5 soft-shadow space-y-3">
+              <Clock className="w-12 h-12 text-zinc-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">Chưa có lịch sử đọc truyện</h3>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                Bất cứ khi nào bạn mở một chapter truyện, tiến trình sẽ được ghi lại tự động tại đây.
+              </p>
+              <div className="pt-2">
+                <Link
+                  to="/"
+                  className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-colors inline-block"
+                >
+                  Bắt Đầu Đọc Ngay
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {historyItems.map((hist) => (
+                <div
+                  key={hist.id}
+                  className="bg-[#141721] rounded-2xl p-4 border border-white/5 hover:border-orange-500/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 soft-shadow group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <img
+                      src={getImageUrl(hist.coverImage)}
+                      alt={hist.comicTitle}
+                      className="w-12 h-16 object-cover rounded-xl border border-white/5 bg-[#090a0f] shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=400&auto=format&fit=crop';
+                      }}
+                    />
+                    <div className="min-w-0">
+                      <Link
+                        to={`/comic/${hist.comicSlug}`}
+                        className="text-sm font-bold text-white group-hover:text-orange-400 truncate block transition-colors"
+                      >
+                        {hist.comicTitle}
+                      </Link>
+                      <p className="text-xs text-orange-400 font-semibold mt-0.5">
+                        Chương {hist.chapterNumber}{hist.chapterTitle ? `: ${hist.chapterTitle}` : ''}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1.5 text-[11px] text-zinc-400">
+                        <span>Trang {hist.pageNumber}</span>
+                        <span>•</span>
+                        <span>Tiến độ: {hist.percentage}%</span>
+                        <span>•</span>
+                        <span>Cập nhật: {new Date(hist.updatedAt).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Link
+                      to={`/read/${hist.comicSlug}/${hist.chapterSlug}`}
+                      className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20 flex items-center gap-1.5"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      <span>Đọc Tiếp</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= TAB 3: BOOKMARKS ================= */}
+      {activeMainTab === 'BOOKMARKS' && (
+        <div className="space-y-4">
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-[#141721] rounded-2xl animate-pulse border border-white/5" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-8 text-center bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
+              {error}
+            </div>
+          ) : bookmarkItems.length === 0 ? (
+            <div className="p-16 text-center bg-[#141721] rounded-3xl border border-white/5 soft-shadow space-y-3">
+              <BookmarkCheck className="w-12 h-12 text-zinc-600 mx-auto" />
+              <h3 className="text-base font-bold text-white">Chưa có trang nào được đánh dấu</h3>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                Trong quá trình đọc truyện, ấn vào nút Bookmark góc mỗi trang để lưu lại danh sách tại đây.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {bookmarkItems.map((bm) => (
+                <div
+                  key={bm.id}
+                  className="bg-[#141721] rounded-2xl p-4 border border-white/5 hover:border-orange-500/30 transition-all flex flex-col justify-between gap-3 soft-shadow"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <Link
+                        to={`/comic/${bm.comicSlug}`}
+                        className="text-xs font-bold text-white hover:text-orange-400 truncate block transition-colors"
+                      >
+                        {bm.comicTitle}
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteBookmark(bm.id)}
+                        className="text-zinc-600 hover:text-red-400 p-1 transition-colors cursor-pointer"
+                        title="Xóa bookmark"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-2.5 py-1 bg-orange-500 text-white rounded-lg text-xs font-black shadow-sm">
+                        Trang {bm.pageNumber}
                       </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        Cập nhật: {new Date(item.updatedAt).toLocaleDateString('vi-VN')}
+                      <span className="text-xs font-semibold text-zinc-400">
+                        Chương {bm.chapterNumber}
                       </span>
                     </div>
-                  ) : (
-                    <span className="text-[11px] text-slate-400 italic block">Chưa bắt đầu đọc</span>
-                  )}
+
+                    {bm.note && (
+                      <p className="text-xs text-zinc-400 italic mt-2 line-clamp-2">
+                        "{bm.note}"
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-500">
+                      {new Date(bm.createdAt).toLocaleDateString('vi-VN')}
+                    </span>
+
+                    <Link
+                      to={`/read/${bm.comicSlug}/${bm.chapterSlug}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-orange-400 hover:text-orange-300"
+                    >
+                      <span>Mở Đọc</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
-
-                {item.lastReadChapterSlug ? (
-                  <Link
-                    to={`/read/${item.comicSlug}/${item.lastReadChapterSlug}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors shrink-0 shadow-sm shadow-indigo-200"
-                  >
-                    Đọc Tiếp →
-                  </Link>
-                ) : (
-                  <Link
-                    to={`/comic/${item.comicSlug}`}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors shrink-0"
-                  >
-                    Xem Chi Tiết
-                  </Link>
-                )}
-              </div>
-
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
 

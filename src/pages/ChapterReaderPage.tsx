@@ -15,8 +15,12 @@ import {
   ArrowLeft,
   Bookmark,
   BookmarkCheck,
-  List,
   CheckCircle,
+  ArrowUp,
+  Maximize2,
+  Minimize2,
+  Sliders,
+  List,
 } from 'lucide-react';
 
 export const ChapterReaderPage: React.FC = () => {
@@ -41,8 +45,14 @@ export const ChapterReaderPage: React.FC = () => {
   // Bookmark Drawer state
   const [isBookmarkDrawerOpen, setIsBookmarkDrawerOpen] = useState<boolean>(false);
 
+  // Zen mode & reader preferences
+  const [isZenMode, setIsZenMode] = useState<boolean>(false);
+  const [readerWidth, setReaderWidth] = useState<'standard' | 'wide' | 'full'>('standard');
+  const lastScrollY = useRef<number>(0);
+
   // Active page & scroll tracking
   const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+  const [readingPercent, setReadingPercent] = useState<number>(0);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const imageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
 
@@ -91,7 +101,6 @@ export const ChapterReaderPage: React.FC = () => {
           }, 400);
         } else {
           window.scrollTo(0, 0);
-          // Initial save history for page 1
           debouncedSaveHistory(detail.comicId, detail.id, 1, 0);
         }
       } else {
@@ -109,6 +118,10 @@ export const ChapterReaderPage: React.FC = () => {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const debouncedSaveHistory = useCallback(
@@ -133,12 +146,30 @@ export const ChapterReaderPage: React.FC = () => {
     [isAuthenticated]
   );
 
-  // Track active visible page while scrolling
+  // Zen Mode auto-hide header when scrolling down
   useEffect(() => {
-    if (!chapterDetail || !chapterDetail.images || chapterDetail.images.length === 0) return;
-
     const handleScroll = () => {
-      const scrollPos = window.scrollY + window.innerHeight / 3;
+      const currentScrollY = window.scrollY;
+
+      // Zen mode toggle on scroll direction
+      if (currentScrollY > 150) {
+        if (currentScrollY > lastScrollY.current + 10) {
+          // Scrolling down
+          setIsZenMode(true);
+        } else if (currentScrollY < lastScrollY.current - 15) {
+          // Scrolling up
+          setIsZenMode(false);
+        }
+      } else {
+        setIsZenMode(false);
+      }
+
+      lastScrollY.current = currentScrollY;
+
+      // Track active page
+      if (!chapterDetail || !chapterDetail.images || chapterDetail.images.length === 0) return;
+
+      const scrollPos = currentScrollY + window.innerHeight / 3;
       let activePage = 1;
 
       const sortedImages = [...chapterDetail.images].sort(
@@ -158,6 +189,7 @@ export const ChapterReaderPage: React.FC = () => {
 
       const totalPages = sortedImages.length;
       const pct = Math.min(100, Math.round((activePage / totalPages) * 100));
+      setReadingPercent(pct);
 
       if (activePage !== currentPageNumber) {
         setCurrentPageNumber(activePage);
@@ -250,11 +282,19 @@ export const ChapterReaderPage: React.FC = () => {
     setTotalComments((prev) => Math.max(0, prev - 1));
   };
 
+  // Reader container width styling
+  const widthContainerClass =
+    readerWidth === 'standard'
+      ? 'max-w-3xl'
+      : readerWidth === 'wide'
+      ? 'max-w-5xl'
+      : 'max-w-none px-0 sm:px-4';
+
   if (loading) {
     return (
       <div className="py-12 max-w-3xl mx-auto space-y-6 animate-pulse">
-        <div className="bg-white rounded-2xl h-14 border border-slate-200" />
-        <div className="bg-white rounded-3xl h-[600px] border border-slate-200" />
+        <div className="bg-[#141721] rounded-2xl h-14 border border-white/5" />
+        <div className="bg-[#141721] rounded-3xl h-[600px] border border-white/5" />
       </div>
     );
   }
@@ -262,11 +302,11 @@ export const ChapterReaderPage: React.FC = () => {
   if (error || !chapterDetail) {
     return (
       <div className="py-12 text-center max-w-lg mx-auto space-y-4">
-        <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
+        <div className="p-6 bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
           {error || 'Không tìm thấy thông tin chương'}
         </div>
         {comicSlug && (
-          <Link to={`/comic/${comicSlug}`} className="inline-block text-xs font-bold text-indigo-600 hover:underline">
+          <Link to={`/comic/${comicSlug}`} className="inline-block text-xs font-bold text-orange-400 hover:underline">
             ← Quay lại trang thông tin truyện
           </Link>
         )}
@@ -275,97 +315,105 @@ export const ChapterReaderPage: React.FC = () => {
   }
 
   return (
-    <div className="py-6 max-w-4xl mx-auto space-y-6 animate-fade-in relative">
+    <div className={`py-4 mx-auto space-y-6 animate-fade-in relative ${widthContainerClass}`}>
 
-      {/* Toast notification when auto-scrolling to last read page */}
+      {/* Auto-scroll Toast */}
       {autoScrollToast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-indigo-900/90 text-white px-5 py-2.5 rounded-2xl shadow-xl backdrop-blur-md text-xs font-bold flex items-center gap-2 animate-bounce border border-indigo-500/30">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#141721]/95 text-white px-5 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-bold flex items-center gap-2 border border-orange-500/30 animate-bounce">
           <CheckCircle className="w-4 h-4 text-emerald-400" />
           <span>{autoScrollToast}</span>
         </div>
       )}
 
-      {/* Sticky Reader Header Bar */}
-      <div className="sticky top-20 z-30 glass-panel rounded-2xl p-3 shadow-md flex flex-wrap items-center justify-between gap-3 border border-slate-200/90">
-        <Link
-          to={`/comic/${chapterDetail.comicSlug || comicSlug}`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="truncate max-w-[130px] sm:max-w-xs">{chapterDetail.comicTitle || 'Trang Truyện'}</span>
-        </Link>
-
-        {/* Chapter Switcher, Bookmark drawer button & Prev/Next Controls */}
-        <div className="flex items-center gap-2">
-          {/* Bookmark list button */}
-          <button
-            onClick={() => setIsBookmarkDrawerOpen(true)}
-            className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors"
-            title="Danh sách trang đánh dấu"
+      {/* Header Bar (Auto-hides in Zen Mode) */}
+      <div
+        className={`sticky top-16 z-30 transition-all duration-300 ${
+          isZenMode ? '-translate-y-24 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        <div className="reader-floating-island rounded-2xl p-3 shadow-xl flex flex-wrap items-center justify-between gap-3">
+          <Link
+            to={`/comic/${chapterDetail.comicSlug || comicSlug}`}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-300 hover:text-orange-400 transition-colors"
           >
-            <Bookmark className="w-3.5 h-3.5 fill-indigo-200" />
-            <span className="hidden sm:inline">Bookmarks</span>
-            {bookmarks.length > 0 && (
-              <span className="ml-0.5 bg-indigo-600 text-white text-[10px] px-1.5 py-0.2 rounded-full font-extrabold">
-                {bookmarks.length}
-              </span>
+            <ArrowLeft className="w-4 h-4" />
+            <span className="truncate max-w-[140px] sm:max-w-xs">{chapterDetail.comicTitle || 'Trang Truyện'}</span>
+          </Link>
+
+          {/* Right controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsBookmarkDrawerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#141721] hover:bg-orange-500/10 text-orange-400 border border-white/5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              title="Danh sách trang đánh dấu"
+            >
+              <Bookmark className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Bookmarks</span>
+              {bookmarks.length > 0 && (
+                <span className="bg-orange-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-black">
+                  {bookmarks.length}
+                </span>
+              )}
+            </button>
+
+            {/* Prev chapter */}
+            {chapterDetail.prevChapterSlug ? (
+              <button
+                onClick={() => handleSelectChapter(chapterDetail.prevChapterSlug!)}
+                className="p-2 bg-[#141721] hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl border border-white/5 transition-colors cursor-pointer"
+                title="Chương trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            ) : (
+              <button disabled className="p-2 bg-[#141721] text-zinc-600 rounded-xl border border-white/5 cursor-not-allowed">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
             )}
-          </button>
 
-          {chapterDetail.prevChapterSlug ? (
-            <button
-              onClick={() => handleSelectChapter(chapterDetail.prevChapterSlug!)}
-              className="p-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-xl transition-colors"
-              title="Chương trước"
+            {/* Chapter Select */}
+            <select
+              value={chapterDetail.slug}
+              onChange={(e) => handleSelectChapter(e.target.value)}
+              className="px-3 py-1.5 bg-[#090a0f] border border-white/10 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-orange-500/50"
             >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          ) : (
-            <button disabled className="p-2 bg-slate-50 text-slate-300 rounded-xl cursor-not-allowed">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
+              {allChapters.map((chap) => (
+                <option key={chap.id} value={chap.slug}>
+                  Chương {chap.chapterNumber}{chap.title ? `: ${chap.title}` : ''}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={chapterDetail.slug}
-            onChange={(e) => handleSelectChapter(e.target.value)}
-            className="px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            {allChapters.map((chap) => (
-              <option key={chap.id} value={chap.slug}>
-                Chương {chap.chapterNumber}{chap.title ? `: ${chap.title}` : ''}
-              </option>
-            ))}
-          </select>
-
-          {chapterDetail.nextChapterSlug ? (
-            <button
-              onClick={() => handleSelectChapter(chapterDetail.nextChapterSlug!)}
-              className="p-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-xl transition-colors"
-              title="Chương sau"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button disabled className="p-2 bg-slate-50 text-slate-300 rounded-xl cursor-not-allowed">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
+            {/* Next chapter */}
+            {chapterDetail.nextChapterSlug ? (
+              <button
+                onClick={() => handleSelectChapter(chapterDetail.nextChapterSlug!)}
+                className="p-2 bg-[#141721] hover:bg-white/10 text-zinc-300 hover:text-white rounded-xl border border-white/5 transition-colors cursor-pointer"
+                title="Chương sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button disabled className="p-2 bg-[#141721] text-zinc-600 rounded-xl border border-white/5 cursor-not-allowed">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Chapter Title Banner */}
-      <div className="text-center space-y-1 py-2">
-        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">
+      <div className="text-center space-y-1 py-1">
+        <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
           Chương {chapterDetail.chapterNumber}{chapterDetail.title ? `: ${chapterDetail.title}` : ''}
         </h1>
-        <p className="text-xs text-slate-400">
-          Cập nhật ngày {new Date(chapterDetail.createdAt).toLocaleDateString('vi-VN')}
+        <p className="text-xs text-zinc-500">
+          Cập nhật ngày {new Date(chapterDetail.createdAt).toLocaleDateString('vi-VN')} • {chapterDetail.images?.length || 0} trang
         </p>
       </div>
 
       {/* Webtoon Vertical Strip Viewer */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow p-2 sm:p-4 space-y-3 min-h-[400px]">
+      <div className="bg-[#090a0f] rounded-3xl border border-white/5 soft-shadow p-1 sm:p-2 space-y-1 sm:space-y-2 min-h-[400px]">
         {chapterDetail.images && chapterDetail.images.length > 0 ? (
           [...chapterDetail.images]
             .sort((a, b) => (a.pageNumber ?? a.imageOrder ?? 0) - (b.pageNumber ?? b.imageOrder ?? 0))
@@ -381,16 +429,17 @@ export const ChapterReaderPage: React.FC = () => {
                   ref={(el) => {
                     imageRefs.current[pageNum] = el;
                   }}
-                  className="relative overflow-hidden bg-slate-50 rounded-2xl group border border-slate-100"
+                  className="relative overflow-hidden bg-black group"
                 >
                   {/* Overlay Bookmark Action Button */}
-                  <div className="absolute top-3 right-3 z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-3 right-3 z-10 opacity-70 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleToggleBookmark(pageNum)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-md transition-all ${isBookmarked
-                          ? 'bg-rose-600 text-white hover:bg-rose-700'
-                          : 'bg-slate-900/70 text-white backdrop-blur-md hover:bg-indigo-600'
-                        }`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shadow-xl backdrop-blur-md transition-all cursor-pointer ${
+                        isBookmarked
+                          ? 'bg-red-600 text-white hover:bg-red-700 shadow-red-600/30'
+                          : 'bg-black/70 text-zinc-300 hover:text-white hover:bg-orange-500 border border-white/10'
+                      }`}
                       title={isBookmarked ? 'Bỏ đánh dấu trang này' : 'Đánh dấu trang này'}
                     >
                       {isBookmarked ? (
@@ -412,7 +461,7 @@ export const ChapterReaderPage: React.FC = () => {
                     <img
                       src={srcUrl}
                       alt={`Trang ${pageNum}`}
-                      className="w-full h-auto block mx-auto select-none rounded-xl"
+                      className="w-full h-auto block mx-auto select-none rounded-sm"
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -421,31 +470,31 @@ export const ChapterReaderPage: React.FC = () => {
                       }}
                     />
                   ) : (
-                    <div className="p-8 text-center text-slate-400 text-xs">
+                    <div className="p-8 text-center text-zinc-600 text-xs">
                       [Không tìm thấy ảnh trang {pageNum}]
                     </div>
                   )}
 
-                  {/* Bottom Page Indicator Label */}
-                  <div className="py-1 text-center bg-slate-100 text-[10px] text-slate-400 font-semibold">
+                  {/* Subtle Page Indicator Bar */}
+                  <div className="py-1 text-center bg-[#090a0f] text-[10px] text-zinc-600 font-semibold tracking-wider">
                     — Trang {pageNum} / {chapterDetail.images.length} —
                   </div>
                 </div>
               );
             })
         ) : (
-          <div className="p-12 text-center text-slate-400 text-xs">
+          <div className="p-16 text-center text-zinc-500 text-xs">
             Chương này chưa có hình ảnh nội dung.
           </div>
         )}
       </div>
 
-      {/* Bottom Navigation Control */}
-      <div className="flex items-center justify-between bg-white rounded-2xl p-4 border border-slate-200/80 soft-shadow">
+      {/* Bottom Chapter Switcher Navigation */}
+      <div className="flex items-center justify-between bg-[#141721] rounded-2xl p-4 border border-white/5 soft-shadow">
         {chapterDetail.prevChapterSlug ? (
           <button
             onClick={() => handleSelectChapter(chapterDetail.prevChapterSlug!)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#090a0f] hover:bg-white/5 text-zinc-200 hover:text-orange-400 rounded-xl text-xs font-bold border border-white/5 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" /> Chương Trước
           </button>
@@ -455,7 +504,7 @@ export const ChapterReaderPage: React.FC = () => {
 
         <Link
           to={`/comic/${chapterDetail.comicSlug || comicSlug}`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-orange-400"
         >
           <List className="w-4 h-4" /> Mục Lục Chương
         </Link>
@@ -463,7 +512,7 @@ export const ChapterReaderPage: React.FC = () => {
         {chapterDetail.nextChapterSlug ? (
           <button
             onClick={() => handleSelectChapter(chapterDetail.nextChapterSlug!)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm shadow-indigo-200"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20 cursor-pointer"
           >
             Chương Sau <ChevronRight className="w-4 h-4" />
           </button>
@@ -493,6 +542,100 @@ export const ChapterReaderPage: React.FC = () => {
         onDeleteBookmark={handleDeleteBookmark}
         currentChapterNumber={chapterDetail.chapterNumber}
       />
+
+      {/* Floating Control Island (Zen & Quick Access) */}
+      <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 reader-floating-island rounded-full px-4 py-2 shadow-2xl flex items-center gap-2 sm:gap-3 transition-transform duration-300">
+        
+        {/* Comic Detail Link */}
+        <Link
+          to={`/comic/${chapterDetail.comicSlug || comicSlug}`}
+          className="p-1.5 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+          title="Thông tin truyện"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+
+        {/* Prev Chapter */}
+        <button
+          disabled={!chapterDetail.prevChapterSlug}
+          onClick={() => chapterDetail.prevChapterSlug && handleSelectChapter(chapterDetail.prevChapterSlug)}
+          className="p-1.5 text-zinc-300 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-zinc-500 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+          title="Chương trước"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {/* Quick Chapter Selector */}
+        <select
+          value={chapterDetail.slug}
+          onChange={(e) => handleSelectChapter(e.target.value)}
+          className="bg-transparent text-xs font-bold text-white border-none focus:outline-none cursor-pointer max-w-[120px] sm:max-w-[150px] truncate"
+        >
+          {allChapters.map((chap) => (
+            <option key={chap.id} value={chap.slug} className="bg-[#141721] text-white">
+              Chương {chap.chapterNumber}
+            </option>
+          ))}
+        </select>
+
+        {/* Next Chapter */}
+        <button
+          disabled={!chapterDetail.nextChapterSlug}
+          onClick={() => chapterDetail.nextChapterSlug && handleSelectChapter(chapterDetail.nextChapterSlug)}
+          className="p-1.5 text-zinc-300 hover:text-orange-400 disabled:opacity-30 disabled:hover:text-zinc-500 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+          title="Chương sau"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+
+        <div className="h-4 w-px bg-white/10 mx-0.5" />
+
+        {/* Reading Progress Indicator */}
+        <span className="text-[10px] font-bold text-orange-400 hidden sm:inline whitespace-nowrap">
+          {readingPercent}% (Trang {currentPageNumber}/{chapterDetail.images?.length || 1})
+        </span>
+
+        {/* Toggle Reader Width */}
+        <button
+          onClick={() => {
+            setReaderWidth((prev) =>
+              prev === 'standard' ? 'wide' : prev === 'wide' ? 'full' : 'standard'
+            );
+          }}
+          className="p-1.5 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer hidden sm:inline-flex"
+          title={`Độ rộng khung đọc: ${readerWidth}`}
+        >
+          {readerWidth === 'standard' ? (
+            <Sliders className="w-4 h-4" />
+          ) : readerWidth === 'wide' ? (
+            <Maximize2 className="w-4 h-4" />
+          ) : (
+            <Minimize2 className="w-4 h-4" />
+          )}
+        </button>
+
+        {/* Bookmark Drawer Button */}
+        <button
+          onClick={() => setIsBookmarkDrawerOpen(true)}
+          className="p-1.5 text-zinc-400 hover:text-orange-400 rounded-full hover:bg-white/10 transition-colors relative cursor-pointer"
+          title="Bookmarks"
+        >
+          <Bookmark className="w-4 h-4" />
+          {bookmarks.length > 0 && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-orange-500" />
+          )}
+        </button>
+
+        {/* Scroll To Top */}
+        <button
+          onClick={scrollToTop}
+          className="p-1.5 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+          title="Lên đầu trang"
+        >
+          <ArrowUp className="w-4 h-4" />
+        </button>
+
+      </div>
 
     </div>
   );

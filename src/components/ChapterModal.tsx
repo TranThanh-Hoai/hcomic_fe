@@ -73,14 +73,14 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
           filesToCompress,
           { maxWidth: 1920, maxHeight: 2560, quality: 0.8, outputType: 'image/webp' },
           (current, total) => {
-            setProcessingStatus(`Đang nén WebP (Quality 80%): ${current}/${total} trang...`);
+            setProcessingStatus(`Đang nén WebP: ${current}/${total} trang...`);
           }
         );
 
         setImageFiles((prev) => [...prev, ...compressedList]);
       } catch (err: any) {
-         console.error('Lỗi khi xử lý file:', err);
-         setErrorMsg(err.message || 'Lỗi khi giải nén hoặc nén ảnh trang');
+        console.error('Lỗi khi xử lý file:', err);
+        setErrorMsg(err.message || 'Lỗi khi giải nén hoặc nén ảnh trang');
       } finally {
         setIsProcessing(false);
         setProcessingStatus('');
@@ -117,27 +117,28 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 space-y-5 max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+      <div className="bg-[#141721] rounded-3xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl border border-white/10 space-y-5 max-h-[92vh] overflow-y-auto text-left">
+        
+        <div className="flex items-center justify-between border-b border-white/5 pb-3">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">
+            <h2 className="text-lg font-bold text-white tracking-tight">
               {initialData ? 'Chỉnh Sửa Chương' : 'Thêm Chương Mới'}
             </h2>
             {comicTitle && (
-              <p className="text-xs text-slate-500 font-medium">Truyện: {comicTitle}</p>
+              <p className="text-xs text-orange-400 font-medium">Bộ truyện: {comicTitle}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {errorMsg && (
-          <div className="p-3 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-xl">
+          <div className="p-3 text-xs bg-red-950/40 border border-red-500/20 text-red-300 rounded-xl">
             {errorMsg}
           </div>
         )}
@@ -145,8 +146,8 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Số chương <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                Số chương <span className="text-orange-500">*</span>
               </label>
               <input
                 type="number"
@@ -156,12 +157,12 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                 value={chapterNumber}
                 onChange={(e) => setChapterNumber(parseFloat(e.target.value))}
                 placeholder="VD: 1, 2, 2.5..."
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#090a0f] border border-white/10 rounded-xl focus:border-orange-500/50 text-white placeholder-zinc-600 focus:outline-none transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-zinc-300 mb-1">
                 Tiêu đề chương
               </label>
               <input
@@ -169,31 +170,37 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="VD: Khởi đầu mới..."
-                className="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:bg-white text-slate-800 focus:outline-none transition-all"
+                className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[#090a0f] border border-white/10 rounded-xl focus:border-orange-500/50 text-white placeholder-zinc-600 focus:outline-none transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-zinc-300 mb-1">
               Danh sách ảnh trang truyện {initialData ? '(Để trống nếu không thay đổi)' : '*'}
             </label>
 
-            <label className={`cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed ${isProcessing ? 'border-indigo-300 bg-indigo-50/80 cursor-wait' : 'border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50'} rounded-2xl transition-colors`}>
+            <label
+              className={`cursor-pointer flex flex-col items-center justify-center p-6 border-2 border-dashed ${
+                isProcessing
+                  ? 'border-orange-500/40 bg-orange-950/20 cursor-wait'
+                  : 'border-white/10 bg-[#090a0f] hover:border-orange-500/30 hover:bg-white/5'
+              } rounded-2xl transition-colors`}
+            >
               {isProcessing ? (
                 <>
-                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-2" />
-                  <span className="text-xs font-semibold text-indigo-700">Đang xử lý tập tin tại trình duyệt...</span>
-                  <span className="text-[11px] text-indigo-500 font-medium mt-1">{processingStatus}</span>
+                  <Loader2 className="w-8 h-8 text-orange-400 animate-spin mb-2" />
+                  <span className="text-xs font-bold text-white">Đang xử lý tập tin tại trình duyệt...</span>
+                  <span className="text-[11px] text-orange-400 font-medium mt-1">{processingStatus}</span>
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 mb-2 text-indigo-500">
+                  <div className="flex items-center gap-2 mb-2 text-orange-400">
                     <Upload className="w-7 h-7" />
                     <FileArchive className="w-7 h-7" />
                   </div>
-                  <span className="text-xs font-semibold text-indigo-700">Tải lên các trang ảnh hoặc File nén .ZIP</span>
-                  <span className="text-[11px] text-slate-400 mt-1 text-center">
+                  <span className="text-xs font-bold text-white">Tải lên các trang ảnh hoặc File nén .ZIP</span>
+                  <span className="text-[11px] text-zinc-400 mt-1 text-center max-w-sm">
                     Hỗ trợ tệp ảnh (.jpg, .png, .webp) hoặc gói .zip chứa toàn bộ chương.<br/>
                     Tự động giải nén, sắp xếp thứ tự tự nhiên & nén WebP 80%.
                   </span>
@@ -218,25 +225,25 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white bg-[#090a0f] hover:bg-white/5 rounded-xl border border-white/5 transition-colors cursor-pointer"
             >
               Hủy Bỏ
             </button>
             <button
               type="submit"
               disabled={isSubmitting || isProcessing}
-              className="px-4 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 rounded-xl shadow-sm shadow-indigo-200 transition-all"
+              className="px-5 py-2 text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 disabled:opacity-50 rounded-xl shadow-md shadow-orange-500/20 transition-all cursor-pointer"
             >
               {isSubmitting ? 'Đang lưu...' : initialData ? 'Cập Nhật Chương' : 'Tạo Chương Mới'}
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );
 };
-

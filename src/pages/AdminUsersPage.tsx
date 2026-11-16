@@ -4,6 +4,7 @@ import type { AdminUserItem, UserRole } from '../types';
 import { UserTable } from '../components/admin/UserTable';
 import { UserBanModal } from '../components/admin/UserBanModal';
 import { UserRoleModal } from '../components/admin/UserRoleModal';
+import { Search } from 'lucide-react';
 
 export const AdminUsersPage: React.FC = () => {
   const [users, setUsers] = useState<AdminUserItem[]>([]);
@@ -59,14 +60,18 @@ export const AdminUsersPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-left animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Quản Lý Người Dùng</h1>
-        <p className="text-xs text-slate-500 mt-1">Tìm kiếm, phân quyền role, và thực hiện khóa / mở khóa tài khoản</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          Quản Lý Người Dùng
+        </h1>
+        <p className="text-xs text-zinc-400 mt-1">
+          Tìm kiếm, phân quyền vai trò (Role), và thực hiện khóa / mở khóa tài khoản thành viên
+        </p>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div className="bg-[#141721] rounded-2xl border border-white/5 p-4 shadow-xl flex flex-col sm:flex-row gap-3 items-center justify-between">
         <div className="relative w-full sm:w-80">
           <input
             type="text"
@@ -76,11 +81,9 @@ export const AdminUsersPage: React.FC = () => {
               setPage(0);
             }}
             placeholder="Tìm theo username, email, tên..."
-            className="w-full text-xs rounded-lg border border-slate-300 pl-9 pr-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full text-xs rounded-xl border border-white/10 pl-9 pr-3 py-2.5 bg-[#090a0f] text-white placeholder-zinc-500 outline-none focus:border-orange-500/50"
           />
-          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-3 pointer-events-none" />
         </div>
 
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -90,12 +93,12 @@ export const AdminUsersPage: React.FC = () => {
               setSelectedRole(e.target.value as any);
               setPage(0);
             }}
-            className="text-xs rounded-lg border border-slate-300 p-2 bg-white outline-none"
+            className="text-xs rounded-xl border border-white/10 p-2.5 bg-[#090a0f] text-white outline-none focus:border-orange-500/50 cursor-pointer"
           >
             <option value="">Tất cả vai trò</option>
-            <option value="USER">USER</option>
-            <option value="TRANSLATOR">TRANSLATOR</option>
-            <option value="ADMIN">ADMIN</option>
+            <option value="USER">USER (Độc giả)</option>
+            <option value="TRANSLATOR">TRANSLATOR (Dịch giả)</option>
+            <option value="ADMIN">ADMIN (Quản trị viên)</option>
           </select>
 
           <select
@@ -104,10 +107,10 @@ export const AdminUsersPage: React.FC = () => {
               setSelectedBanned(e.target.value);
               setPage(0);
             }}
-            className="text-xs rounded-lg border border-slate-300 p-2 bg-white outline-none"
+            className="text-xs rounded-xl border border-white/10 p-2.5 bg-[#090a0f] text-white outline-none focus:border-orange-500/50 cursor-pointer"
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="false">Hoạt động (Active)</option>
+            <option value="false">Đang hoạt động (Active)</option>
             <option value="true">Đã bị khóa (Banned)</option>
           </select>
         </div>
@@ -127,17 +130,17 @@ export const AdminUsersPage: React.FC = () => {
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            className="px-3.5 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#141721] border border-white/10 rounded-xl hover:bg-white/5 disabled:opacity-40 cursor-pointer"
           >
             Trang trước
           </button>
-          <span className="text-xs font-medium text-slate-500">
+          <span className="text-xs font-bold text-zinc-400">
             Trang {page + 1} / {totalPages}
           </span>
           <button
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50"
+            className="px-3.5 py-1.5 text-xs font-semibold text-zinc-300 hover:text-white bg-[#141721] border border-white/10 rounded-xl hover:bg-white/5 disabled:opacity-40 cursor-pointer"
           >
             Trang sau
           </button>
