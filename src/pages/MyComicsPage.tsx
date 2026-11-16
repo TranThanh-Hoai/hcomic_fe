@@ -7,10 +7,10 @@ import { StatusBadge } from '../components/StatusBadge';
 import { ComicModal } from '../components/ComicModal';
 import { Pagination } from '../components/Pagination';
 import { getImageUrl } from '../services/apiClient';
-import { PlusCircle, Edit, Trash2, BookOpen, Eye, Heart, ShieldAlert } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, BookOpen, Eye, Heart, ShieldAlert, Sparkles } from 'lucide-react';
 
 export const MyComicsPage: React.FC = () => {
-  const { user, isAuthenticated, hasRole } = useAuth();
+  const { isAuthenticated, hasRole } = useAuth();
 
   const [comics, setComics] = useState<ComicResponse[]>([]);
   const [page, setPage] = useState<number>(0);
@@ -86,146 +86,166 @@ export const MyComicsPage: React.FC = () => {
 
   if (!isAuthenticated || !hasRole(['TRANSLATOR', 'ADMIN'])) {
     return (
-      <div className="py-12 max-w-md mx-auto text-center space-y-4">
-        <div className="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 space-y-2">
-          <ShieldAlert className="w-10 h-10 text-amber-600 mx-auto" />
-          <h3 className="text-base font-bold">Quyền truy cập bị từ chối</h3>
-          <p className="text-xs">
+      <div className="py-20 max-w-md mx-auto text-center space-y-4 px-4">
+        <div className="p-8 bg-[#141721] border border-white/5 rounded-3xl text-zinc-300 space-y-3 soft-shadow">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 mx-auto flex items-center justify-center text-amber-400">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <h3 className="text-lg font-bold text-white tracking-tight">Quyền Truy Cập Bị Từ Chối</h3>
+          <p className="text-xs text-zinc-400">
             Trang này chỉ dành cho người dùng có quyền <strong>DỊCH GIẢ</strong> (TRANSLATOR) hoặc <strong>ADMIN</strong>.
           </p>
+          <div className="pt-2">
+            <Link to="/" className="inline-block px-5 py-2.5 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md">
+              ← Trở về Trang Chủ
+            </Link>
+          </div>
         </div>
-        <Link to="/" className="inline-block text-xs font-bold text-indigo-600 hover:underline">
-          ← Trở về Trang Chủ
-        </Link>
       </div>
     );
   }
 
   return (
-    <div className="py-8 space-y-6 animate-fade-in max-w-6xl mx-auto">
+    <div className="py-6 space-y-8 animate-fade-in text-left">
       
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+      {/* Studio Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
-            Quản Lý Đăng Truyện
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold mb-2">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Studio Người Dịch</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Quản Lý Truyện Của Tôi
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Danh sách các bộ truyện được cập nhật bởi <strong className="text-indigo-600">{user?.username}</strong>
+          <p className="text-xs text-zinc-400 mt-1">
+            Đăng truyện mới, quản lý chapter, tải hàng loạt tranh ảnh và theo dõi thông số tác phẩm.
           </p>
         </div>
 
         <button
           onClick={handleOpenAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-indigo-200"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition-all hover:scale-105 cursor-pointer shrink-0"
         >
-          <PlusCircle className="w-4 h-4" /> Đăng Truyện Mới
+          <PlusCircle className="w-4 h-4" />
+          <span>Đăng Truyện Mới</span>
         </button>
       </div>
 
+      {/* Comics List */}
       {loading ? (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white h-20 rounded-2xl animate-pulse border border-slate-200" />
+            <div key={i} className="h-48 bg-[#141721] rounded-2xl animate-pulse border border-white/5" />
           ))}
         </div>
       ) : error ? (
-        <div className="p-6 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs text-center">
+        <div className="p-8 text-center bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
           {error}
         </div>
       ) : comics.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 soft-shadow space-y-4">
-          <BookOpen className="w-12 h-12 text-slate-300 mx-auto" />
-          <h3 className="text-base font-bold text-slate-700">Chưa có bộ truyện nào</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Bạn chưa đăng bộ truyện nào. Hãy ấn nút bên dưới để tạo bộ truyện đầu tiên!
+        <div className="p-16 text-center bg-[#141721] rounded-3xl border border-white/5 soft-shadow space-y-3">
+          <BookOpen className="w-12 h-12 text-zinc-600 mx-auto" />
+          <h3 className="text-base font-bold text-white">Bạn chưa đăng tải bộ truyện nào</h3>
+          <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+            Bấm "Đăng Truyện Mới" để bắt đầu chia sẻ câu chuyện đầu tiên của bạn đến cộng đồng HComic!
           </p>
-          <button
-            onClick={handleOpenAddModal}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm"
-          >
-            <PlusCircle className="w-4 h-4" /> Tạo Truyện Mới
-          </button>
+          <div className="pt-2">
+            <button
+              onClick={handleOpenAddModal}
+              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
+            >
+              Đăng Truyện Ngay
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-200/80 soft-shadow overflow-hidden p-4 space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Bìa</th>
-                  <th className="py-3.5 px-4">Tên Truyện</th>
-                  <th className="py-3.5 px-4">Tác giả</th>
-                  <th className="py-3.5 px-4">Trạng thái</th>
-                  <th className="py-3.5 px-4 text-center">Thống kê</th>
-                  <th className="py-3.5 px-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
-                {comics.map((comic) => (
-                  <tr key={comic.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4">
-                      <img
-                        src={getImageUrl(comic.coverImage)}
-                        alt={comic.title}
-                        className="w-10 h-14 object-cover rounded-lg border border-slate-200 bg-slate-100"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=200&auto=format&fit=crop';
-                        }}
-                      />
-                    </td>
-                    <td className="py-3 px-4 font-bold text-slate-800">
-                      <Link to={`/comic/${comic.slug}`} className="hover:text-indigo-600">
-                        {comic.title}
-                      </Link>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 font-medium">
-                      {comic.author || 'Chưa rõ'}
-                    </td>
-                    <td className="py-3 px-4">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {comics.map((comic) => (
+              <div
+                key={comic.id}
+                className="group bg-[#141721] rounded-2xl p-3 border border-white/5 hover:border-orange-500/30 transition-all flex gap-3 soft-shadow relative"
+              >
+                {/* Poster */}
+                <Link
+                  to={`/comic/${comic.slug}`}
+                  className="w-20 aspect-[3/4] rounded-xl overflow-hidden bg-[#090a0f] border border-white/5 shrink-0 block"
+                >
+                  <img
+                    src={getImageUrl(comic.coverImage)}
+                    alt={comic.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=400&auto=format&fit=crop';
+                    }}
+                  />
+                </Link>
+
+                {/* Details */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <Link
+                      to={`/comic/${comic.slug}`}
+                      className="text-xs font-bold text-white hover:text-orange-400 truncate block transition-colors"
+                      title={comic.title}
+                    >
+                      {comic.title}
+                    </Link>
+
+                    <p className="text-[10px] text-zinc-400 truncate mt-0.5">
+                      {comic.author || 'Tác giả chưa rõ'}
+                    </p>
+
+                    <div className="mt-1.5 flex items-center gap-2">
                       <StatusBadge status={comic.status} />
-                    </td>
-                    <td className="py-3 px-4 text-center text-slate-500">
-                      <div className="flex items-center justify-center gap-3">
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-3.5 h-3.5 text-slate-400" /> {comic.viewCount || 0}
-                        </span>
-                        <span className="flex items-center gap-1 text-rose-500 font-semibold">
-                          <Heart className="w-3.5 h-3.5 fill-rose-500" /> {comic.likeCount || 0}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/comic/${comic.slug}`}
-                          className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold rounded-xl text-xs transition-colors"
-                        >
-                          Quản lý Chương
-                        </Link>
-                        <button
-                          onClick={() => handleOpenEditModal(comic)}
-                          className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
-                          title="Sửa truyện"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteComic(comic.id, comic.title)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Xóa truyện"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[10px] text-zinc-500 font-semibold mt-2">
+                      <span className="flex items-center gap-0.5">
+                        <Eye className="w-3 h-3 text-zinc-600" />
+                        {comic.viewCount?.toLocaleString() || 0}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-rose-400">
+                        <Heart className="w-3 h-3 fill-rose-500" />
+                        {comic.likeCount || 0}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 flex items-center justify-between border-t border-white/5">
+                    <Link
+                      to={`/comic/${comic.slug}`}
+                      className="text-[11px] font-bold text-orange-400 hover:text-orange-300"
+                    >
+                      Quản lý Chapters →
+                    </Link>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleOpenEditModal(comic)}
+                        className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                        title="Sửa thông tin"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteComic(comic.id, comic.title)}
+                        className="p-1.5 text-zinc-400 hover:text-red-400 rounded-lg hover:bg-red-950/20 transition-colors cursor-pointer"
+                        title="Xóa truyện"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Pagination Controls */}
+          {/* Pagination */}
           <Pagination
             page={page}
             totalPages={totalPages}
@@ -236,7 +256,7 @@ export const MyComicsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Comic Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <ComicModal
           isOpen={isModalOpen}

@@ -9,11 +9,13 @@ import {
   Search,
   Layers,
   Filter,
-  ArrowUpDown,
   X,
   BookOpen,
   RotateCcw,
   Compass,
+  Clock,
+  Flame,
+  Star,
 } from 'lucide-react';
 
 export const SearchPage: React.FC = () => {
@@ -95,7 +97,6 @@ export const SearchPage: React.FC = () => {
         newParams.set(key, value);
       }
     });
-    // Reset page to 0 on any filter change unless page itself was updated
     if (!('page' in updates)) {
       newParams.delete('page');
     }
@@ -136,30 +137,28 @@ export const SearchPage: React.FC = () => {
 
   const selectedGenreObj = genres.find((g) => g.slug === urlGenre);
   const hasActiveFilters = Boolean(urlQuery || urlGenre !== 'ALL' || urlStatus !== 'ALL' || urlSort !== 'newest');
-
-  // Display genres limit
   const visibleGenres = isGenresExpanded ? genres : genres.slice(0, 16);
 
   return (
-    <div className="py-8 space-y-8 animate-fade-in">
+    <div className="py-6 space-y-8 animate-fade-in">
       
       {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 sm:p-10 shadow-xl border border-indigo-900/40">
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 backdrop-blur-md text-xs font-semibold text-indigo-300 border border-indigo-500/30">
-            <Compass className="w-3.5 h-3.5 text-teal-300" />
-            <span>Tìm Kiếm & Khám Phá Truyện Tranh</span>
+      <div className="relative overflow-hidden rounded-3xl bg-[#141721] text-white p-6 sm:p-10 shadow-2xl border border-white/5">
+        <div className="relative z-10 max-w-3xl space-y-4 text-left">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-bold">
+            <Compass className="w-3.5 h-3.5" />
+            <span>Tìm Kiếm & Khám Phá Nâng Cao</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            Khám phá hàng ngàn bộ truyện theo tên & thể loại
+            Khám phá kho truyện tranh và manga phong phú
           </h1>
 
-          <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed font-normal">
-            Tìm kiếm theo tên truyện, tác giả hoặc lọc chính xác theo thể loại yêu thích với hệ thống phân loại đa dạng.
+          <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
+            Tra cứu theo tên truyện, tác giả, trạng thái phát hành hoặc kết hợp đa dạng các thể loại.
           </p>
 
-          {/* Big Search Form */}
+          {/* Search Form */}
           <form onSubmit={handleSearchSubmit} className="pt-2 flex items-center gap-2 max-w-2xl">
             <div className="relative flex-1">
               <input
@@ -167,15 +166,15 @@ export const SearchPage: React.FC = () => {
                 placeholder="Nhập tên truyện, tên tác giả..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                className="w-full pl-11 pr-10 py-3 text-sm bg-white/10 hover:bg-white/15 focus:bg-white focus:text-slate-900 text-white placeholder-slate-400 rounded-2xl border border-white/20 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/30 transition-all shadow-inner backdrop-blur-sm"
+                className="w-full pl-11 pr-10 py-3 text-xs sm:text-sm bg-[#090a0f] text-white placeholder-zinc-500 rounded-2xl border border-white/10 focus:border-orange-500/60 focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all shadow-inner"
               />
-              <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5 pointer-events-none" />
 
               {searchInput && (
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-200 rounded-full hover:bg-white/10 transition-colors"
+                  className="absolute right-3 top-3 p-1 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
                   title="Xóa tìm kiếm"
                 >
                   <X className="w-4 h-4" />
@@ -185,29 +184,26 @@ export const SearchPage: React.FC = () => {
 
             <button
               type="submit"
-              className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-teal-500 hover:from-indigo-600 hover:to-teal-600 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-indigo-500/25 transition-all hover:scale-105 active:scale-95 shrink-0 flex items-center gap-1.5"
+              className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 shrink-0 flex items-center gap-1.5 cursor-pointer"
             >
               <Search className="w-4 h-4" />
               <span>Tìm Kiếm</span>
             </button>
           </form>
         </div>
-
-        {/* Decorative background shapes */}
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-15 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-400 via-teal-400 to-transparent" />
       </div>
 
       {/* Main Filter Section */}
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 soft-shadow space-y-6">
+      <div className="bg-[#141721] rounded-3xl p-5 sm:p-6 border border-white/5 soft-shadow space-y-6">
         
         {/* Genre Selector */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-              <Layers className="w-4 h-4 text-indigo-600" />
+            <div className="flex items-center gap-2 text-xs font-bold text-zinc-300">
+              <Layers className="w-4 h-4 text-orange-400" />
               <span>Thể Loại Truyện:</span>
               {selectedGenreObj && (
-                <span className="text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                <span className="text-[11px] font-bold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">
                   Đang chọn: {selectedGenreObj.name}
                 </span>
               )}
@@ -216,7 +212,7 @@ export const SearchPage: React.FC = () => {
             {genres.length > 16 && (
               <button
                 onClick={() => setIsGenresExpanded((prev) => !prev)}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                className="text-xs font-bold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer"
               >
                 {isGenresExpanded ? 'Thu gọn thể loại' : `Xem tất cả (${genres.length})`}
               </button>
@@ -226,10 +222,10 @@ export const SearchPage: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => handleSelectGenre('ALL')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                 urlGenre === 'ALL'
-                  ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  : 'bg-[#090a0f] text-zinc-400 hover:text-white border border-white/5'
               }`}
             >
               Tất cả thể loại
@@ -242,19 +238,19 @@ export const SearchPage: React.FC = () => {
                   key={genre.id}
                   onClick={() => handleSelectGenre(genre.slug)}
                   title={genre.description || genre.name}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200 font-semibold'
-                      : 'bg-slate-50 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/70 hover:border-indigo-200'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20 font-bold border border-orange-400'
+                      : 'bg-[#090a0f] text-zinc-300 hover:text-orange-400 hover:border-orange-500/30 border border-white/5'
                   }`}
                 >
                   <span>{genre.name}</span>
                   {genre.comicCount !== undefined && genre.comicCount > 0 && (
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold ${
                         isSelected
-                          ? 'bg-white/25 text-white'
-                          : 'bg-slate-200/80 text-slate-600'
+                          ? 'bg-white/20 text-white'
+                          : 'bg-zinc-800 text-zinc-400'
                       }`}
                     >
                       {genre.comicCount}
@@ -266,11 +262,11 @@ export const SearchPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="border-t border-slate-100 pt-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="border-t border-white/5 pt-4 flex flex-wrap items-center justify-between gap-4">
           
           {/* Status Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
+            <span className="text-xs font-bold text-zinc-400 mr-1 flex items-center gap-1">
               <Filter className="w-3.5 h-3.5" /> Trạng thái:
             </span>
             {[
@@ -284,10 +280,10 @@ export const SearchPage: React.FC = () => {
                 <button
                   key={item.key}
                   onClick={() => handleSelectStatus(item.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-teal-600 text-white shadow-sm shadow-teal-200'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                      : 'bg-[#090a0f] text-zinc-400 hover:text-white border border-white/5'
                   }`}
                 >
                   {item.label}
@@ -298,139 +294,92 @@ export const SearchPage: React.FC = () => {
 
           {/* Sort Filter */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-500 mr-1 flex items-center gap-1">
-              <ArrowUpDown className="w-3.5 h-3.5" /> Sắp xếp:
-            </span>
-            {[
-              { key: 'newest', label: 'Mới nhất' },
-              { key: 'views', label: 'Xem nhiều nhất' },
-              { key: 'rating', label: 'Đánh giá cao' },
-              { key: 'title', label: 'Tên A-Z' },
-            ].map((item) => {
-              const isSelected = urlSort === item.key;
-              return (
+            <span className="text-xs font-bold text-zinc-400">Sắp xếp:</span>
+            <div className="flex bg-[#090a0f] p-1 rounded-xl border border-white/5">
+              {[
+                { key: 'newest', label: 'Mới nhất', icon: Clock },
+                { key: 'views', label: 'Lượt xem', icon: Flame },
+                { key: 'rating', label: 'Đánh giá', icon: Star },
+                { key: 'title', label: 'Tên A-Z', icon: null },
+              ].map((item) => (
                 <button
                   key={item.key}
                   onClick={() => handleSelectSort(item.key as any)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    isSelected
-                      ? 'bg-slate-800 text-white shadow-sm'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                  className={`flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                    urlSort === item.key
+                      ? 'bg-[#141721] text-orange-400 font-bold border border-white/5 shadow-xs'
+                      : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* Active Filter Chips & Results Count Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 bg-white p-4 rounded-2xl border border-slate-200/80 soft-shadow">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-slate-700">
-            Tìm thấy <strong className="text-indigo-600 font-extrabold">{totalElements}</strong> bộ truyện
-          </span>
-
-          {urlQuery && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg border border-indigo-200 font-medium">
-              Từ khóa: "{urlQuery}"
-              <button
-                onClick={handleClearSearch}
-                className="hover:text-rose-600 p-0.5"
-                title="Bỏ từ khóa"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-
-          {selectedGenreObj && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg border border-teal-200 font-medium">
-              Thể loại: {selectedGenreObj.name}
-              <button
-                onClick={() => handleSelectGenre('ALL')}
-                className="hover:text-rose-600 p-0.5"
-                title="Bỏ thể loại"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-
-          {urlStatus !== 'ALL' && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg border border-slate-200 font-medium">
-              Trạng thái: {urlStatus === 'ONGOING' ? 'Đang tiến hành' : urlStatus === 'COMPLETED' ? 'Hoàn thành' : 'Tạm ngưng'}
-              <button
-                onClick={() => handleSelectStatus('ALL')}
-                className="hover:text-rose-600 p-0.5"
-                title="Bỏ trạng thái"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-        </div>
-
-        {hasActiveFilters && (
-          <button
-            onClick={handleResetAllFilters}
-            className="text-xs text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1 ml-auto"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span>Đặt lại tất cả bộ lọc</span>
-          </button>
-        )}
-      </div>
-
-      {/* Comics Grid Content */}
-      {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl aspect-[3/4] animate-pulse border border-slate-200" />
-          ))}
-        </div>
-      ) : error ? (
-        <div className="p-8 text-center bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm">
-          {error}
-        </div>
-      ) : comics.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 soft-shadow space-y-4 max-w-xl mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto">
-            <BookOpen className="w-8 h-8" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-slate-800">Không tìm thấy bộ truyện nào phù hợp</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Hãy thử tìm kiếm với từ khóa khác, bỏ bớt điều kiện lọc hoặc khám phá các thể loại phổ biến dưới đây.
-            </p>
-          </div>
-
-          {/* Quick genre recommendation pills */}
-          <div className="pt-2">
-            <p className="text-[11px] font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-              Thể loại gợi ý
-            </p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {genres.slice(0, 8).map((genre) => (
-                <button
-                  key={genre.id}
-                  onClick={() => handleSelectGenre(genre.slug)}
-                  className="px-3 py-1 rounded-xl text-xs font-medium bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                >
-                  {genre.name}
+                  {item.icon && <item.icon className="w-3 h-3" />}
+                  <span>{item.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
+        </div>
+
+      </div>
+
+      {/* Active Filters Summary */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-orange-950/20 border border-orange-500/20 p-3 rounded-2xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-zinc-400">Đang lọc theo:</span>
+            {urlQuery && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 font-semibold border border-white/5">
+                Từ khóa: "{urlQuery}"
+              </span>
+            )}
+            {selectedGenreObj && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-orange-500 text-white font-bold">
+                {selectedGenreObj.name}
+              </span>
+            )}
+            {urlStatus !== 'ALL' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 font-semibold border border-white/5">
+                {urlStatus === 'ONGOING' ? 'Đang tiến hành' : urlStatus === 'COMPLETED' ? 'Hoàn thành' : 'Tạm ngưng'}
+              </span>
+            )}
+            {urlSort !== 'newest' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 font-semibold border border-white/5">
+                Ưu tiên: {urlSort === 'views' ? 'Xem nhiều' : urlSort === 'rating' ? 'Đánh giá' : 'Tên'}
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={handleResetAllFilters}
+            className="flex items-center gap-1 text-xs font-bold text-orange-400 hover:text-orange-300 hover:underline cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> Đặt lại tất cả
+          </button>
+        </div>
+      )}
+
+      {/* Comics Grid Results */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="bg-[#141721] rounded-2xl aspect-[3/4] animate-pulse border border-white/5" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="p-8 text-center bg-red-950/30 border border-red-500/20 rounded-2xl text-red-300 text-sm">
+          {error}
+        </div>
+      ) : comics.length === 0 ? (
+        <div className="p-16 text-center bg-[#141721] rounded-3xl border border-white/5 soft-shadow space-y-4">
+          <BookOpen className="w-14 h-14 text-zinc-600 mx-auto" />
+          <h3 className="text-lg font-bold text-white">Không tìm thấy truyện nào phù hợp</h3>
+          <p className="text-xs text-zinc-400 max-w-md mx-auto">
+            Không tìm thấy truyện nào với tiêu chí lọc hiện tại. Hãy thử thay đổi từ khóa hoặc đặt lại bộ lọc.
+          </p>
           <div className="pt-2">
             <button
               onClick={handleResetAllFilters}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs shadow-md transition-colors cursor-pointer"
             >
               Xem tất cả truyện
             </button>
@@ -444,7 +393,7 @@ export const SearchPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Pagination */}
+          {/* Pagination Component */}
           <Pagination
             page={currentPage}
             totalPages={totalPages}

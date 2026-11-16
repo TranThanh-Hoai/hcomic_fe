@@ -23,6 +23,7 @@ export interface User {
 export interface AuthResponse {
   token?: string;
   accessToken?: string;
+  refreshToken?: string;
   tokenType?: string;
   username: string;
   displayName?: string;
@@ -159,7 +160,7 @@ export interface ChapterRequestData {
   title?: string;
 }
 
-export type ShelfStatus = 'READING' | 'FAVORITE' | 'COMPLETED' | 'READ_LATER';
+export type ShelfStatus = 'READING' | 'FAVORITE' | 'COMPLETED' | 'READ_LATER' | 'PLAN_TO_READ';
 
 export interface ReadingHistoryRequest {
   comicId: number;

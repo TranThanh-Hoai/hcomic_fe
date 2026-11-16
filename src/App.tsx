@@ -9,6 +9,7 @@ import { ChapterReaderPage } from './pages/ChapterReaderPage';
 import { MyComicsPage } from './pages/MyComicsPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { OAuth2RedirectPage } from './pages/OAuth2RedirectPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LibraryPage } from './pages/LibraryPage';
 
@@ -18,20 +19,23 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminReportsPage } from './pages/AdminReportsPage';
 import { AdminGenresPage } from './pages/AdminGenresPage';
+import { Flame } from 'lucide-react';
 
 export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+        <div className="min-h-screen bg-[#090a0f] text-[#f3f4f6] flex flex-col font-sans selection:bg-orange-500 selection:text-white antialiased">
           <Navbar />
           
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-16">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/comics" element={<SearchPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/oauth2/redirect" element={<OAuth2RedirectPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/library" element={<LibraryPage />} />
               <Route path="/comic/:slug" element={<ComicDetailPage />} />
@@ -52,9 +56,17 @@ export const App: React.FC = () => {
             </Routes>
           </main>
 
-          <footer className="border-t border-slate-200/80 bg-white py-6 text-center text-xs text-slate-400 space-y-1">
-            <p className="font-medium text-slate-500">HComic App © 2026 - Nền tảng đọc truyện tranh sắc nét & dịu mắt</p>
-            <p className="text-[11px]">Tích hợp 100% APIs Spring Boot Backend • React 19 & Tailwind CSS</p>
+          <footer className="border-t border-white/5 bg-[#0e1017] py-8 text-center text-xs text-zinc-500 space-y-2">
+            <div className="flex items-center justify-center gap-2">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span className="font-extrabold text-sm text-white tracking-tight">HComic Platform</span>
+            </div>
+            <p className="font-medium text-zinc-400">
+              Nền tảng đọc truyện tranh sắc nét, trải nghiệm đọc Zen Mode vô song & tối ưu hóa di động.
+            </p>
+            <p className="text-[11px] text-zinc-600">
+              Tích hợp 100% Backend Spring Boot APIs • React 19 • Tailwind CSS Dark Aesthetic
+            </p>
           </footer>
         </div>
       </BrowserRouter>

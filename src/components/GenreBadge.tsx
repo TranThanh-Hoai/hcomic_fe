@@ -24,21 +24,21 @@ export const GenreBadge: React.FC<GenreBadgeProps> = ({
   const sizeClasses = {
     xs: 'px-2 py-0.5 text-[10px]',
     sm: 'px-2.5 py-1 text-xs',
-    md: 'px-3.5 py-1.5 text-sm',
+    md: 'px-3 py-1.5 text-xs',
   }[size];
 
   const baseClasses = `inline-flex items-center font-medium rounded-lg transition-all duration-200 shrink-0 ${sizeClasses} ${className}`;
 
   const stateClasses = selected
-    ? 'bg-indigo-600 text-white font-semibold shadow-sm shadow-indigo-200 hover:bg-indigo-700'
-    : 'bg-indigo-50/80 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 hover:border-indigo-200 hover:text-indigo-800';
+    ? 'bg-orange-500 text-white font-bold shadow-md shadow-orange-500/25 border border-orange-400'
+    : 'bg-[#141721] text-zinc-300 border border-white/5 hover:border-orange-500/40 hover:text-orange-400 hover:bg-[#1a1f2e]';
 
   if (onClick) {
     return (
       <button
         type="button"
         onClick={onClick}
-        className={`${baseClasses} ${stateClasses}`}
+        className={`${baseClasses} ${stateClasses} cursor-pointer`}
         title={genre.description || genre.name}
       >
         {genre.name}

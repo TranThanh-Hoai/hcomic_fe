@@ -57,6 +57,27 @@ export const chapterService = {
     return response.data;
   },
 
+  uploadChapterImages: async (chapterId: number, imageFiles: File[]): Promise<any> => {
+    const formData = new FormData();
+    imageFiles.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const response = await apiClient.post(`/api/chapters/${chapterId}/images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  reorderChapterImages: async (chapterId: number, orderedImageIds: number[]): Promise<any> => {
+    const response = await apiClient.put(`/api/chapters/${chapterId}/images/reorder`, {
+      orderedImageIds,
+    });
+    return response.data;
+  },
+
   deleteChapter: async (chapterId: number): Promise<string> => {
     const response = await apiClient.delete<string>(`/api/chapters/${chapterId}`);
     return response.data;

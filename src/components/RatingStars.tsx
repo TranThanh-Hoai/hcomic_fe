@@ -14,7 +14,7 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
   maxStars = 5,
   readOnly = true,
   onRate,
-  size = 18,
+  size = 16,
 }) => {
   const [hoverScore, setHoverScore] = useState<number | null>(null);
 
@@ -35,23 +35,23 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
             onClick={() => !readOnly && onRate && onRate(starValue)}
             onMouseEnter={() => !readOnly && setHoverScore(starValue)}
             onMouseLeave={() => !readOnly && setHoverScore(null)}
-            className={`${readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-110'} transition-transform focus:outline-none`}
+            className={`${readOnly ? 'cursor-default' : 'cursor-pointer hover:scale-125'} transition-transform focus:outline-none`}
           >
             <Star
               size={size}
               className={`${
                 isFilled
-                  ? 'fill-amber-400 text-amber-400'
+                  ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_6px_rgba(245,158,11,0.4)]'
                   : isHalf
-                  ? 'fill-amber-200 text-amber-400'
-                  : 'fill-slate-100 text-slate-300'
+                  ? 'fill-amber-500/50 text-amber-400'
+                  : 'fill-zinc-800/80 text-zinc-700'
               } transition-colors`}
             />
           </button>
         );
       })}
       {rating !== undefined && rating !== null && (
-        <span className="text-xs font-semibold text-slate-600 ml-1">
+        <span className="text-xs font-bold text-amber-400 ml-1">
           {Number(rating).toFixed(1)}
         </span>
       )}

@@ -10,22 +10,22 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
   const getBadgeStyle = () => {
     switch (status) {
       case 'ONGOING':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200/80';
+        return 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30';
       case 'COMPLETED':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200/80';
+        return 'bg-blue-950/80 text-blue-400 border-blue-500/30';
       case 'PAUSED':
-        return 'bg-amber-50 text-amber-700 border-amber-200/80';
+        return 'bg-amber-950/80 text-amber-400 border-amber-500/30';
       case 'CANCELLED':
-        return 'bg-rose-50 text-rose-700 border-rose-200/80';
+        return 'bg-rose-950/80 text-rose-400 border-rose-500/30';
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200/80';
+        return 'bg-zinc-900/80 text-zinc-400 border-white/10';
     }
   };
 
   const getLabel = () => {
     switch (status) {
       case 'ONGOING':
-        return 'Đang tiến hành';
+        return 'Đang ra';
       case 'COMPLETED':
         return 'Hoàn thành';
       case 'PAUSED':
@@ -39,9 +39,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = ''
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBadgeStyle()} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold border backdrop-blur-md shadow-sm tracking-wide ${getBadgeStyle()} ${className}`}
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 opacity-80" />
+      <span className="w-1.5 h-1.5 rounded-full bg-current mr-1.5 shrink-0" />
       {getLabel()}
     </span>
   );

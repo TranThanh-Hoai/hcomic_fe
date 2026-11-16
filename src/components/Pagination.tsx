@@ -18,7 +18,6 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   if (totalPages <= 1) return null;
 
-  // Generate page numbers range centered around current page
   const getPageNumbers = () => {
     const pages: number[] = [];
     const maxVisible = 5;
@@ -41,16 +40,16 @@ export const Pagination: React.FC<PaginationProps> = ({
   const endItem = totalElements ? Math.min((page + 1) * pageSize, totalElements) : (page + 1) * pageSize;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-slate-100">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-5 border-t border-white/5">
       {/* Item info */}
-      <div className="text-xs text-slate-500 font-medium">
+      <div className="text-xs text-zinc-400 font-medium">
         {totalElements !== undefined ? (
           <span>
-            Hiển thị <strong className="text-slate-800">{startItem} - {endItem}</strong> trên <strong className="text-slate-800">{totalElements}</strong> kết quả
+            Hiển thị <strong className="text-white font-bold">{startItem} - {endItem}</strong> trên <strong className="text-orange-400 font-bold">{totalElements}</strong> kết quả
           </span>
         ) : (
           <span>
-            Trang <strong className="text-slate-800">{page + 1}</strong> / <strong className="text-slate-800">{totalPages}</strong>
+            Trang <strong className="text-white font-bold">{page + 1}</strong> / <strong className="text-zinc-400">{totalPages}</strong>
           </span>
         )}
       </div>
@@ -61,7 +60,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(0)}
           disabled={page === 0}
-          className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-2 rounded-xl text-zinc-400 hover:text-orange-400 hover:bg-[#141721] border border-transparent hover:border-white/5 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500 transition-colors cursor-pointer"
           title="Trang đầu"
         >
           <ChevronsLeft className="w-4 h-4" />
@@ -71,7 +70,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 0}
-          className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-2 rounded-xl text-zinc-400 hover:text-orange-400 hover:bg-[#141721] border border-transparent hover:border-white/5 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500 transition-colors cursor-pointer"
           title="Trang trước"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -82,11 +81,11 @@ export const Pagination: React.FC<PaginationProps> = ({
           <>
             <button
               onClick={() => onPageChange(0)}
-              className="w-8 h-8 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              className="w-8 h-8 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#141721] border border-transparent hover:border-white/5 transition-colors cursor-pointer"
             >
               1
             </button>
-            {pageNumbers[0] > 1 && <span className="px-1 text-slate-400 text-xs">...</span>}
+            {pageNumbers[0] > 1 && <span className="px-1 text-zinc-600 text-xs">...</span>}
           </>
         )}
 
@@ -94,10 +93,10 @@ export const Pagination: React.FC<PaginationProps> = ({
           <button
             key={p}
             onClick={() => onPageChange(p)}
-            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+            className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               p === page
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25 border border-orange-400'
+                : 'text-zinc-400 hover:text-white hover:bg-[#141721] border border-white/5'
             }`}
           >
             {p + 1}
@@ -107,11 +106,11 @@ export const Pagination: React.FC<PaginationProps> = ({
         {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
           <>
             {pageNumbers[pageNumbers.length - 1] < totalPages - 2 && (
-              <span className="px-1 text-slate-400 text-xs">...</span>
+              <span className="px-1 text-zinc-600 text-xs">...</span>
             )}
             <button
               onClick={() => onPageChange(totalPages - 1)}
-              className="w-8 h-8 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              className="w-8 h-8 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-[#141721] border border-white/5 transition-colors cursor-pointer"
             >
               {totalPages}
             </button>
@@ -122,7 +121,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages - 1}
-          className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-2 rounded-xl text-zinc-400 hover:text-orange-400 hover:bg-[#141721] border border-transparent hover:border-white/5 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500 transition-colors cursor-pointer"
           title="Trang sau"
         >
           <ChevronRight className="w-4 h-4" />
@@ -132,7 +131,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(totalPages - 1)}
           disabled={page >= totalPages - 1}
-          className="p-2 rounded-xl text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition-colors"
+          className="p-2 rounded-xl text-zinc-400 hover:text-orange-400 hover:bg-[#141721] border border-transparent hover:border-white/5 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500 transition-colors cursor-pointer"
           title="Trang cuối"
         >
           <ChevronsRight className="w-4 h-4" />

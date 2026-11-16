@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { ShelfStatus, UserComicLibraryResponse } from '../types';
 import { libraryService } from '../services/libraryService';
 import { useAuth } from '../context/AuthContext';
-import { Bookmark, Heart, BookCheck, Clock, BookmarkCheck, ChevronDown } from 'lucide-react';
+import { Bookmark, Heart, BookCheck, Clock, BookmarkCheck, ChevronDown, Check } from 'lucide-react';
 
 interface ShelfSelectorProps {
   comicId: number;
@@ -10,10 +10,10 @@ interface ShelfSelectorProps {
 }
 
 const SHELF_OPTIONS: { status: ShelfStatus; label: string; icon: React.FC<{ className?: string }>; colorClass: string }[] = [
-  { status: 'READING', label: 'Đang Đọc', icon: Bookmark, colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
-  { status: 'FAVORITE', label: 'Yêu Thích', icon: Heart, colorClass: 'text-rose-600 bg-rose-50 border-rose-200' },
-  { status: 'COMPLETED', label: 'Đã Đọc Xong', icon: BookCheck, colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-  { status: 'READ_LATER', label: 'Đọc Sau', icon: Clock, colorClass: 'text-amber-600 bg-amber-50 border-amber-200' },
+  { status: 'READING', label: 'Đang Đọc', icon: Bookmark, colorClass: 'text-orange-400 bg-orange-950/40 border-orange-500/30' },
+  { status: 'FAVORITE', label: 'Yêu Thích', icon: Heart, colorClass: 'text-rose-400 bg-rose-950/40 border-rose-500/30' },
+  { status: 'COMPLETED', label: 'Đã Đọc Xong', icon: BookCheck, colorClass: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/30' },
+  { status: 'READ_LATER', label: 'Đọc Sau', icon: Clock, colorClass: 'text-amber-400 bg-amber-950/40 border-amber-500/30' },
 ];
 
 export const ShelfSelector: React.FC<ShelfSelectorProps> = ({ comicId, onStatusChange }) => {
@@ -80,10 +80,10 @@ export const ShelfSelector: React.FC<ShelfSelectorProps> = ({ comicId, onStatusC
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         disabled={loading}
-        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border ${
+        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm border cursor-pointer ${
           activeOption
             ? activeOption.colorClass
-            : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+            : 'bg-[#141721] text-zinc-300 border-white/10 hover:border-orange-500/30 hover:text-white'
         }`}
       >
         {activeOption ? (
@@ -93,17 +93,17 @@ export const ShelfSelector: React.FC<ShelfSelectorProps> = ({ comicId, onStatusC
           </>
         ) : (
           <>
-            <Bookmark className="w-4 h-4 text-slate-500" />
-            <span>+ Thêm Vào Tủ Sách</span>
+            <Bookmark className="w-4 h-4 text-zinc-400" />
+            <span>+ Lưu Vào Tủ Sách</span>
           </>
         )}
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-2 z-50 animate-fade-in space-y-1">
-          <div className="px-3 py-1.5 border-b border-slate-100">
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+        <div className="absolute right-0 mt-2 w-52 bg-[#141721] rounded-2xl shadow-2xl border border-white/10 py-2 z-50 animate-fade-in space-y-1">
+          <div className="px-3.5 py-1.5 border-b border-white/5">
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
               Phân loại Tủ Sách
             </p>
           </div>
@@ -116,24 +116,24 @@ export const ShelfSelector: React.FC<ShelfSelectorProps> = ({ comicId, onStatusC
               <button
                 key={opt.status}
                 onClick={() => handleSelectStatus(opt.status)}
-                className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between transition-colors ${
-                  isSelected ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                  isSelected ? 'bg-orange-500/15 text-orange-400 font-bold' : 'text-zinc-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Icon className={`w-4 h-4 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`} />
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-orange-400' : 'text-zinc-500'}`} />
                   <span>{opt.label}</span>
                 </div>
-                {isSelected && <span className="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-bold">✓</span>}
+                {isSelected && <Check className="w-4 h-4 text-orange-400" />}
               </button>
             );
           })}
 
           {currentStatus && (
-            <div className="pt-1 border-t border-slate-100">
+            <div className="pt-1 border-t border-white/5">
               <button
                 onClick={() => handleSelectStatus(null)}
-                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-red-400 hover:bg-red-950/20 transition-colors cursor-pointer"
               >
                 Gỡ khỏi Tủ Sách
               </button>
